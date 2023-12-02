@@ -49,7 +49,7 @@ session = requests.Session()
 if "SESSION_COOKIE" in environ:
     session.cookies.update({"session": environ["SESSION_COOKIE"]})
 else:
-    session.cookies.update(browser_cookie3.load(domain_name="adventofcode.com"))
+    session.cookies.update(browser_cookie3.firefox(domain_name="adventofcode.com"))
 session.headers.update({"User-Agent": "PurpleMyst/aoc-template with much love! <3"})
 
 

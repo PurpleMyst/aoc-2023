@@ -5,6 +5,7 @@ authors = ["PurpleMyst <PurpleMyst@users.noreply.github.com>"]
 edition = "2018"
 
 [dependencies]
+day01 = { version = "0.1.0", path = "../day01" }
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
