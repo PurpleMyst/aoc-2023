@@ -1,0 +1,24 @@
+[package]
+name = "aoc-benchmark"
+version = "1.0.0"
+authors = ["PurpleMyst <PurpleMyst@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+iai = "0.1"
+
+[[bench]]
+name = "criterion"
+harness = false
+
+[[bench]]
+name = "iai"
+harness = false
+
+[lib]
+bench = false
+
+[features]
