@@ -8,11 +8,11 @@ pub fn solve() -> (impl Display, impl Display) {
 
         (
             id.split_once(' ').unwrap().1.parse::<u32>().unwrap(),
-            reveals.split(";").map(|reveal| {
+            reveals.split("; ").map(|reveal| {
                 let mut red = 0;
                 let mut green = 0;
                 let mut blue = 0;
-                for s in reveal.trim().split(", ") {
+                for s in reveal.split(", ") {
                     let (n, color) = s.split_once(' ').unwrap();
                     let n = n.parse::<u8>().unwrap();
                     match color {
