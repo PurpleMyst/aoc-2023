@@ -32,4 +32,5 @@ doit!(
     day24: day24_solve,
     day25: day25_solve,
     day01: day01_solve,
+    day02: day02_solve,
 );
