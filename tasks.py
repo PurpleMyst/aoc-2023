@@ -11,7 +11,7 @@ from pathlib import Path
 import browser_cookie3
 import html2text
 import requests
-import toml
+import tomlkit as toml
 from argh import aliases, arg, dispatch_commands, named, wrap_errors
 from bs4 import BeautifulSoup
 from bs4.element import Tag
