@@ -86,9 +86,7 @@ def in_root_dir(f):
 
 
 def year_and_day(f):
-    day = arg(
-        "-d", "--day", choices=range(1, 25 + 1), default=DEFAULT_DAY, required=False
-    )
+    day = arg("-d", "--day", choices=range(1, 25 + 1), default=DEFAULT_DAY, required=False)
     year = arg(
         "-y",
         "--year",
@@ -230,9 +228,7 @@ def run_prototype() -> None:
 @arg("level", help="Which part to submit.", choices=(1, 2))
 @aliases("a")
 @wrap_errors((requests.HTTPError, AssertionError))
-def answer(
-    answer: str, level: int, day: int = DEFAULT_DAY, year: int = DEFAULT_YEAR
-) -> None:
+def answer(answer: str, level: int, day: int = DEFAULT_DAY, year: int = DEFAULT_YEAR) -> None:
     "Submit your answer!"
     resp = session.post(
         f"https://adventofcode.com/{year}/day/{day}/answer",
@@ -274,6 +270,22 @@ def update_pipreqs() -> None:
     run(("pipreqs", ".", "--force"))
 
 
+@in_root_dir
+@aliases("mct")
+def measure_completion_time() -> None:
+    "Measure completion time for all days."
+    from tabulate import tabulate
+
+    table = []
+    for day in Path().glob("day*"):
+        src_dir = day / "src"
+        input_creation = datetime.datetime.fromtimestamp((src_dir / "input.txt").stat().st_ctime)
+        latest_modification = datetime.datetime.fromtimestamp(max(f.stat().st_mtime for f in src_dir.glob("**/*.rs")))
+        completion_time = latest_modification - input_creation
+        table.append((day.name, str(completion_time)))
+    print(tabulate(table, headers=["Day", "Completion Time"], tablefmt="fancy_grid"))
+
+
 def main() -> None:
     environ["RUST_BACKTRACE"] = "1"
     environ["RUSTFLAGS"] = "-C target-cpu=native"
@@ -292,6 +304,7 @@ def main() -> None:
             fetch_problem,
             update_pipreqs,
             show_session_cookie,
+            measure_completion_time,
         ),
     )
 
