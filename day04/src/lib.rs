@@ -44,15 +44,13 @@ pub fn solve() -> (impl Display, impl Display) {
         })
         .sum::<usize>();
 
-    while let Some(Card {
-        amount_had: _,
-        amount_to_process,
-        matching_numbers,
-        id,
-    }) = cards
-        .iter_mut()
-        .find(|card| card.amount_to_process != 0 && card.matching_numbers != 0)
-    {
+    for idx in 0..cards.len() {
+        let Card {
+            amount_had: _,
+            amount_to_process,
+            matching_numbers,
+            id,
+        } = &mut cards[idx];
         let id = *id;
         let amount_to_add = *amount_to_process;
         *amount_to_process = 0;
