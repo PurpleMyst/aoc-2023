@@ -79,11 +79,7 @@ impl SeedRange {
             start: right_start,
             len: right_end - right_start,
         };
-        (
-            left,
-            common,
-            right,
-        )
+        (left, common, right)
     }
 }
 

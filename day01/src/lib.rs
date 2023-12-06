@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-const DIGITS: [&[u8]; 9] = [b"one", b"two", b"three", b"four", b"five", b"six", b"seven", b"eight", b"nine"];
+const DIGITS: [&[u8]; 9] = [
+    b"one", b"two", b"three", b"four", b"five", b"six", b"seven", b"eight", b"nine",
+];
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display) {

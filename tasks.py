@@ -1,9 +1,9 @@
-import datetime
 import shlex
 import subprocess
 import sys
 import typing as t
 import webbrowser
+from datetime import datetime
 from functools import partial, wraps
 from os import chdir, environ
 from pathlib import Path
@@ -39,7 +39,7 @@ pub fn solve() -> (impl Display, impl Display) {
 
 DEFAULT_BASELINE = "previous"
 
-NOW = datetime.datetime.now()
+NOW = datetime.now()
 DEFAULT_DAY = NOW.day
 DEFAULT_YEAR = NOW.year
 
@@ -117,6 +117,10 @@ def start_solve(day: int = DEFAULT_DAY, year: int = DEFAULT_YEAR) -> None:
         manifest = toml.load(manifest_f)
     if crate not in manifest["workspace"]["members"]:
         manifest["workspace"]["members"].append(crate)
+
+    metadata = manifest["workspace"].setdefault("metadata", {})
+    metadata[crate] = {"start_time": datetime.now()}
+
     with open("Cargo.toml", "w") as manifest_f:
         toml.dump(manifest, manifest_f)
 
@@ -276,14 +280,37 @@ def measure_completion_time() -> None:
     "Measure completion time for all days."
     from tabulate import tabulate
 
+    with open("Cargo.toml") as manifest_f:
+        manifest = toml.load(manifest_f)
+
     table = []
     for day in Path().glob("day*"):
-        src_dir = day / "src"
-        input_creation = datetime.datetime.fromtimestamp((src_dir / "input.txt").stat().st_ctime)
-        latest_modification = datetime.datetime.fromtimestamp(max(f.stat().st_mtime for f in src_dir.glob("**/*.rs")))
-        completion_time = latest_modification - input_creation
+        day_metadata = manifest["workspace"].get("metadata", {}).get(day.name, {})
+        start_time = day_metadata.get("start_time")
+        end_time = day_metadata.get("completion_time")
+        src = day / "src"
+        if start_time is None:
+            start_time = datetime.fromtimestamp((src / "input.txt").stat().st_ctime)
+        if end_time is None:
+            end_time = datetime.fromtimestamp(max(f.stat().st_mtime for f in src.glob("**/*.rs")))
+        completion_time = end_time - start_time
         table.append((day.name, str(completion_time)))
     print(tabulate(table, headers=["Day", "Completion Time"], tablefmt="fancy_grid"))
+
+
+@year_and_day
+@aliases("sct")
+@wrap_errors((requests.HTTPError,))
+def set_completion_time(day: int = DEFAULT_DAY, year: int = DEFAULT_YEAR) -> None:
+    "Set the completion time for a day."
+
+    with open("Cargo.toml") as manifest_f:
+        manifest = toml.load(manifest_f)
+    metadata = manifest["workspace"].setdefault("metadata", {})
+    metadata[f"day{day:02}"] = {"completion_time": datetime.now()}
+
+    with open("Cargo.toml", "w") as manifest_f:
+        toml.dump(manifest, manifest_f)
 
 
 def main() -> None:
@@ -305,6 +332,7 @@ def main() -> None:
             update_pipreqs,
             show_session_cookie,
             measure_completion_time,
+            set_completion_time,
         ),
     )
 

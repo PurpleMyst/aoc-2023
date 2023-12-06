@@ -26,6 +26,7 @@ macro_rules! doit {
     };
 }
 
+#[rustfmt::skip]
 doit!(
     day01,
     day02,
