@@ -307,7 +307,7 @@ def set_completion_time(day: int = DEFAULT_DAY, year: int = DEFAULT_YEAR) -> Non
     with open("Cargo.toml") as manifest_f:
         manifest = toml.load(manifest_f)
     metadata = manifest["workspace"].setdefault("metadata", {})
-    metadata[f"day{day:02}"] = {"completion_time": datetime.now()}
+    metadata.setdefault(f"day{day:02}", {})["completion_time"] = datetime.now()
 
     with open("Cargo.toml", "w") as manifest_f:
         toml.dump(manifest, manifest_f)
