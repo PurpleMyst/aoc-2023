@@ -43,9 +43,7 @@ WORKSPACE_MANIFEST_PATH = Path(__file__).parent / "Cargo.toml"
 
 NOW = datetime.now()
 
-DAYS_LEFT = set(range(1, 26)) - {
-    int(p.name[len("day") :]) for p in Path(__file__).parent.glob("day*")
-}
+DAYS_LEFT = set(range(1, 26)) - {int(p.name[len("day") :]) for p in Path(__file__).parent.glob("day*")}
 
 YEAR = toml.parse(WORKSPACE_MANIFEST_PATH.read_text()).get("metadata", {}).get("year", NOW.year)
 
