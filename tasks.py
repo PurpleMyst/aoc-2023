@@ -305,7 +305,7 @@ def set_completion_time() -> None:
     metadata = manifest["workspace"].setdefault("metadata", {})  # type: ignore
     metadata.setdefault(f"day{day:02}", {})["completion_time"] = datetime.now()
 
-    with WORKSPACE_MANIFEST_PATH.open() as manifest_f:
+    with WORKSPACE_MANIFEST_PATH.open("w") as manifest_f:
         toml.dump(manifest, manifest_f)
 
 
