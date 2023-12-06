@@ -10,6 +10,7 @@ day02 = { version = "0.1.0", path = "../day02" }
 day03 = { version = "0.1.0", path = "../day03" }
 day04 = { version = "0.1.0", path = "../day04" }
 day05 = { version = "0.1.0", path = "../day05" }
+day06 = { version = "0.1.0", path = "../day06" }
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }

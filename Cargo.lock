@@ -36,6 +36,7 @@ dependencies = [
  "day03",
  "day04",
  "day05",
+ "day06",
  "iai",
 ]
 
@@ -257,6 +258,10 @@ version = "0.1.0"
 dependencies = [
  "color-eyre",
 ]
+
+[[package]]
+name = "day06"
+version = "0.1.0"
 
 [[package]]
 name = "either"
