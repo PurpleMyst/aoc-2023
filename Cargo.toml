@@ -2,5 +2,8 @@
 members = [ "benchmark", "day01", "day02", "day03", "day04", "day05", "day06" ]
 resolver = "2"
 
+[workspace.metadata]
+year = 2023
+
 [workspace.metadata.day06]
 completion_time = 2023-12-06T15:00:43.144781

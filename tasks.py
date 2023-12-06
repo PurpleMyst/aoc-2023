@@ -39,9 +39,18 @@ pub fn solve() -> (impl Display, impl Display) {
 
 DEFAULT_BASELINE = "previous"
 
+WORKSPACE_MANIFEST_PATH = Path(__file__).parent / "Cargo.toml"
+
 NOW = datetime.now()
-DEFAULT_DAY = NOW.day
-DEFAULT_YEAR = NOW.year
+
+POSSIBLE_DAYS = set(range(1, 26)) - {int(p.name[len("day"):]) for p in Path(__file__).parent.glob("day*")}
+
+if NOW.month == 12 and NOW.day in POSSIBLE_DAYS:
+    DEFAULT_DAY = NOW.day
+else:
+    DEFAULT_DAY = min(POSSIBLE_DAYS)
+
+DEFAULT_YEAR = toml.parse(WORKSPACE_MANIFEST_PATH.read_text()).get("year", NOW.year)
 
 load_dotenv()
 
@@ -113,15 +122,14 @@ def start_solve(day: int = DEFAULT_DAY, year: int = DEFAULT_YEAR) -> None:
     resp.raise_for_status()
     puzzle_input = resp.text
 
-    with open("Cargo.toml") as manifest_f:
-        manifest = toml.load(manifest_f)
-    if crate not in manifest["workspace"]["members"]:
-        manifest["workspace"]["members"].append(crate)
+    manifest = toml.parse(WORKSPACE_MANIFEST_PATH.read_text())
+    if crate not in manifest["workspace"]["members"]:  # type: ignore
+        manifest["workspace"]["members"].append(crate)  # type: ignore
 
-    metadata = manifest["workspace"].setdefault("metadata", {})
+    metadata = manifest["workspace"].setdefault("metadata", {})  # type: ignore
     metadata[crate] = {"start_time": datetime.now()}
 
-    with open("Cargo.toml", "w") as manifest_f:
+    with WORKSPACE_MANIFEST_PATH.open("w") as manifest_f:
         toml.dump(manifest, manifest_f)
 
     run(("cargo", "new", "--bin", crate))
@@ -280,12 +288,11 @@ def measure_completion_time() -> None:
     "Measure completion time for all days."
     from tabulate import tabulate
 
-    with open("Cargo.toml") as manifest_f:
-        manifest = toml.load(manifest_f)
+    manifest = toml.parse(WORKSPACE_MANIFEST_PATH.read_text())
 
     table = []
     for day in Path().glob("day*"):
-        day_metadata = manifest["workspace"].get("metadata", {}).get(day.name, {})
+        day_metadata = manifest["workspace"].get("metadata", {}).get(day.name, {})  # type: ignore
         start_time = day_metadata.get("start_time")
         end_time = day_metadata.get("completion_time")
         src = day / "src"
@@ -298,15 +305,14 @@ def measure_completion_time() -> None:
     print(tabulate(table, headers=["Day", "Completion Time"], tablefmt="fancy_grid"))
 
 
-@year_and_day
 @aliases("sct")
-@wrap_errors((requests.HTTPError,))
-def set_completion_time(day: int = DEFAULT_DAY, year: int = DEFAULT_YEAR) -> None:
+@arg("-d", "--day", choices=range(1, 25 + 1), default=DEFAULT_DAY, required=False)
+def set_completion_time(day: int = DEFAULT_DAY) -> None:
     "Set the completion time for a day."
 
-    with open("Cargo.toml") as manifest_f:
+    with WORKSPACE_MANIFEST_PATH.open() as manifest_f:
         manifest = toml.load(manifest_f)
-    metadata = manifest["workspace"].setdefault("metadata", {})
+    metadata = manifest["workspace"].setdefault("metadata", {})  # type: ignore
     metadata.setdefault(f"day{day:02}", {})["completion_time"] = datetime.now()
 
     with open("Cargo.toml", "w") as manifest_f:
