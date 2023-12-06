@@ -43,14 +43,11 @@ WORKSPACE_MANIFEST_PATH = Path(__file__).parent / "Cargo.toml"
 
 NOW = datetime.now()
 
-POSSIBLE_DAYS = set(range(1, 26)) - {int(p.name[len("day"):]) for p in Path(__file__).parent.glob("day*")}
+DAYS_LEFT = set(range(1, 26)) - {
+    int(p.name[len("day") :]) for p in Path(__file__).parent.glob("day*")
+}
 
-if NOW.month == 12 and NOW.day in POSSIBLE_DAYS:
-    DEFAULT_DAY = NOW.day
-else:
-    DEFAULT_DAY = min(POSSIBLE_DAYS)
-
-DEFAULT_YEAR = toml.parse(WORKSPACE_MANIFEST_PATH.read_text()).get("year", NOW.year)
+YEAR = toml.parse(WORKSPACE_MANIFEST_PATH.read_text()).get("metadata", {}).get("year", NOW.year)
 
 load_dotenv()
 
@@ -94,22 +91,10 @@ def in_root_dir(f):
     return inner
 
 
-def year_and_day(f):
-    day = arg("-d", "--day", choices=range(1, 25 + 1), default=DEFAULT_DAY, required=False)
-    year = arg(
-        "-y",
-        "--year",
-        choices=range(2015, DEFAULT_YEAR + 1),
-        default=DEFAULT_YEAR,
-        required=False,
-    )
-    return day(year(f))
-
-
-@year_and_day
+@arg("-d", "--day", choices=DAYS_LEFT, default=min(DAYS_LEFT), required=False)
 @aliases("ss")
 @wrap_errors((requests.HTTPError,))
-def start_solve(day: int = DEFAULT_DAY, year: int = DEFAULT_YEAR) -> None:
+def start_solve(day: int = min(DAYS_LEFT)) -> None:
     "Start solving a day, by default today."
     crate = f"day{day:02}"
     crate_path = Path(crate)
@@ -118,7 +103,7 @@ def start_solve(day: int = DEFAULT_DAY, year: int = DEFAULT_YEAR) -> None:
         print(f"{crate} already exists.")
         return
 
-    resp = session.get(f"https://adventofcode.com/{year}/day/{day}/input")
+    resp = session.get(f"https://adventofcode.com/{YEAR}/day/{day}/input")
     resp.raise_for_status()
     puzzle_input = resp.text
 
@@ -154,10 +139,10 @@ def start_solve(day: int = DEFAULT_DAY, year: int = DEFAULT_YEAR) -> None:
     add_line(benches / "criterion.rs", f"    {crate},")
     add_line(benches / "iai.rs", f"    {crate}: {crate}_solve,")
 
-    fetch_problem(year, day)
+    fetch_problem(YEAR, day)
 
     run(("git", "add", crate))
-    webbrowser.open_new(f"https://adventofcode.com/{year}/day/{day}")
+    webbrowser.open_new(f"https://adventofcode.com/{YEAR}/day/{day}")
 
 
 @aliases("sb")
@@ -236,14 +221,19 @@ def run_prototype() -> None:
     run(("cargo", "watch", "--clear", "--shell", "python3 prototype.py"))
 
 
-@year_and_day
 @arg("level", help="Which part to submit.", choices=(1, 2))
 @aliases("a")
 @wrap_errors((requests.HTTPError, AssertionError))
-def answer(answer: str, level: int, day: int = DEFAULT_DAY, year: int = DEFAULT_YEAR) -> None:
+def answer(answer: str, level: int) -> None:
     "Submit your answer!"
+
+    day = Path.cwd().resolve().name
+    if not day.startswith("day"):
+        print(cb("Not in a day directory.", "red"))
+        return
+
     resp = session.post(
-        f"https://adventofcode.com/{year}/day/{day}/answer",
+        f"https://adventofcode.com/{YEAR}/day/{day}/answer",
         data={"answer": answer, "level": str(level)},
     )
     resp.raise_for_status()
@@ -251,7 +241,7 @@ def answer(answer: str, level: int, day: int = DEFAULT_DAY, year: int = DEFAULT_
     # Get the main text, removing the "return to" link, and show it in markdown form.
     soup = BeautifulSoup(resp.text, features="html.parser").main
     assert soup is not None, "no main element?"
-    return_link = soup.find(href=f"/{year}/day/{day}")
+    return_link = soup.find(href=f"/{YEAR}/day/{day}")
     if isinstance(return_link, Tag):
         return_link.decompose()
     h = html2text.HTML2Text()
@@ -259,10 +249,8 @@ def answer(answer: str, level: int, day: int = DEFAULT_DAY, year: int = DEFAULT_
     print(h.handle(str(soup)).strip())
 
 
-@aliases("fp")
 @in_root_dir
-@year_and_day
-def fetch_problem(year: int = DEFAULT_YEAR, day: int = DEFAULT_DAY) -> None:
+def fetch_problem() -> None:
     "Fetch the problem statement."
     resp = session.get(f"https://adventofcode.com/{year}/day/{day}")
     resp.raise_for_status()
@@ -306,16 +294,20 @@ def measure_completion_time() -> None:
 
 
 @aliases("sct")
-@arg("-d", "--day", choices=range(1, 25 + 1), default=DEFAULT_DAY, required=False)
-def set_completion_time(day: int = DEFAULT_DAY) -> None:
-    "Set the completion time for a day."
+def set_completion_time() -> None:
+    "Set the completion time for the day you're currently in."
+
+    day = Path.cwd().resolve().name
+    if not day.startswith("day"):
+        print(cb("Not in a day directory.", "red"))
+        return
 
     with WORKSPACE_MANIFEST_PATH.open() as manifest_f:
         manifest = toml.load(manifest_f)
     metadata = manifest["workspace"].setdefault("metadata", {})  # type: ignore
     metadata.setdefault(f"day{day:02}", {})["completion_time"] = datetime.now()
 
-    with open("Cargo.toml", "w") as manifest_f:
+    with WORKSPACE_MANIFEST_PATH.open() as manifest_f:
         toml.dump(manifest, manifest_f)
 
 
@@ -334,7 +326,6 @@ def main() -> None:
             do_run,
             run_release,
             run_prototype,
-            fetch_problem,
             update_pipreqs,
             show_session_cookie,
             measure_completion_time,
