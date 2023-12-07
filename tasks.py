@@ -248,7 +248,7 @@ def answer(answer: str, level: int) -> None:
 
 
 @in_root_dir
-def fetch_problem() -> None:
+def fetch_problem(year, day) -> None:
     "Fetch the problem statement."
     resp = session.get(f"https://adventofcode.com/{year}/day/{day}")
     resp.raise_for_status()
