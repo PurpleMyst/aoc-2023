@@ -111,16 +111,11 @@ pub(super) fn solve(input: &str) -> impl Display {
         .collect::<Vec<_>>();
 
     hands.sort_unstable_by_key(|&(hand, _)| hand);
-    let answer = hands
+    hands
         .into_iter()
         .enumerate()
         .map(|(idx, (_, bid))| (1 + idx) * bid)
-        .sum::<usize>();
-    if answer > 249749038 {
-        format!("\x1b[32m{answer}\x1b[0m")
-    } else {
-        format!("\x1b[31m{answer}\x1b[0m")
-    }
+        .sum::<usize>()
 }
 
 #[cfg(test)]
