@@ -39,22 +39,31 @@ impl Hand {
             }
         }
 
-        counts.sort_unstable();
-        counts.reverse();
-        match counts[0] + jollies {
+        let mut most = 0;
+        let mut second_most = 0;
+        for &count in counts.iter() {
+            if count > most {
+                second_most = most;
+                most = count;
+            } else if count > second_most {
+                second_most = count;
+            }
+        }
+
+        match most + jollies {
             5 => HandType::FiveOfAKind,
             4 => HandType::FourOfAKind,
             3 => {
-                let remaining_jollies = jollies - (3 - counts[0]);
-                if counts[1..].iter().find(|&&c| c == 2 - remaining_jollies).is_some() {
+                let remaining_jollies = jollies - (3 - most);
+                if second_most == 2 - remaining_jollies {
                     HandType::FullHouse
                 } else {
                     HandType::ThreeOfAKind
                 }
             }
             2 => {
-                let remaining_jollies = jollies - (2 - counts[0]);
-                if counts[1..].iter().find(|&&c| c == 2 - remaining_jollies).is_some() {
+                let remaining_jollies = jollies - (2 - most);
+                if second_most == 2 - remaining_jollies {
                     HandType::TwoPair
                 } else {
                     HandType::Pair
@@ -85,12 +94,8 @@ impl PartialOrd for Hand {
 
 impl Ord for Hand {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.0
-            .iter()
-            .zip(other.0.iter())
-            .fold(self.htype().cmp(&other.htype()), |acc, (&a, &b)| {
-                acc.then(a.cmp(&b).reverse())
-            })
+        self.htype().cmp(&other.htype())
+            .then_with(|| self.0.cmp(&other.0).reverse())
     }
 }
 

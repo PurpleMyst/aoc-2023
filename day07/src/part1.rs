@@ -32,18 +32,29 @@ impl Hand {
             counts[card as usize] += 1;
         }
 
-        match counts.iter().max().unwrap() {
+        let mut most = 0;
+        let mut second_most = 0;
+        for &count in counts.iter() {
+            if count > most {
+                second_most = most;
+                most = count;
+            } else if count > second_most {
+                second_most = count;
+            }
+        }
+
+        match most {
             5 => HandType::FiveOfAKind,
             4 => HandType::FourOfAKind,
             3 => {
-                if counts.iter().find(|&&c| c == 2).is_some() {
+                if second_most == 2 {
                     HandType::FullHouse
                 } else {
                     HandType::ThreeOfAKind
                 }
             }
             2 => {
-                if counts.iter().filter(|&&c| c == 2).count() == 2 {
+                if second_most == 2 {
                     HandType::TwoPair
                 } else {
                     HandType::Pair
@@ -74,12 +85,8 @@ impl PartialOrd for Hand {
 
 impl Ord for Hand {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.0
-            .iter()
-            .zip(other.0.iter())
-            .fold(self.htype().cmp(&other.htype()), |acc, (&a, &b)| {
-                acc.then(a.cmp(&b).reverse())
-            })
+        self.htype().cmp(&other.htype())
+            .then_with(|| self.0.cmp(&other.0).reverse())
     }
 }
 
