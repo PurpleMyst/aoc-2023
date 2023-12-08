@@ -1,0 +1,126 @@
+use std::fmt::Display;
+
+use ahash::{HashMap, HashMapExt};
+
+const START: &str = "AAA";
+const GOAL: &str = "ZZZ";
+
+#[derive(Debug)]
+struct Branch {
+    left: &'static str,
+    right: &'static str,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum Direction {
+    Left,
+    Right,
+}
+
+impl Display for Direction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Direction::Left => f.pad("L"),
+            Direction::Right => f.pad("R"),
+        }
+    }
+}
+
+fn part1(map: &HashMap<&'static str, Branch>, mut directions_to_take: impl Iterator<Item = Direction>) -> usize {
+    let mut current = START;
+    for n in 0.. {
+        if current == GOAL {
+            return n;
+        }
+
+        let branch = map.get(current).unwrap();
+        current = match directions_to_take.next().unwrap() {
+            Direction::Left => branch.left,
+            Direction::Right => branch.right,
+        };
+    }
+
+    unreachable!();
+}
+
+fn gcd(a: usize, b: usize) -> usize {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn lcm(a: usize, b: usize) -> usize {
+    if a > b {
+        (a / gcd(a, b)) * b
+    } else {
+        (b / gcd(a, b)) * a
+    }
+}
+
+fn part2<I>(map: &HashMap<&'static str, Branch>, directions_to_take: I) -> usize
+where
+    I: Iterator<Item = Direction> + Clone,
+{
+    let starting_nodes = map.keys().filter(|&&node| node.ends_with('A')).copied();
+
+    // Each node is independent from the others, so we can figure out the number of steps to reach
+    // the goal for each node, and then find the least common multiple of the cycle length of each.
+    // We figure this out by AoC experience and by looking at the map: from the starting node, once
+    // we reach a Z node that Z node is then part of a cycle that eventually leads back to itself.
+    let cycle_lengths = starting_nodes.map(|mut node| {
+        let mut directions_to_take = directions_to_take.clone();
+        while !node.ends_with('Z') {
+            let direction = directions_to_take.next().unwrap();
+            let branch = map.get(node).unwrap();
+            node = match direction {
+                Direction::Left => branch.left,
+                Direction::Right => branch.right,
+            };
+        }
+
+        let ending_node = node;
+        let mut steps = 0;
+        loop {
+            steps += 1;
+            let direction = directions_to_take.next().unwrap();
+            let branch = map.get(node).unwrap();
+            node = match direction {
+                Direction::Left => branch.left,
+                Direction::Right => branch.right,
+            };
+            if node == ending_node {
+                break;
+            }
+        }
+        steps
+    });
+
+    // Find the least common multiple of the cycle lengths.
+    cycle_lengths.fold(1, |acc, cycle_length| lcm(acc, cycle_length))
+}
+
+#[inline]
+pub fn solve() -> (impl Display, impl Display) {
+    let mut map = HashMap::new();
+    let mut input = include_str!("input.txt").lines();
+    let directions_to_take = input
+        .next()
+        .unwrap()
+        .chars()
+        .map(|ch| match ch {
+            'L' => Direction::Left,
+            'R' => Direction::Right,
+            _ => unreachable!(),
+        })
+        .cycle();
+    let _ = input.next();
+    for line in input {
+        let (node, branches) = line.split_once(" = ").unwrap();
+        let (left, right) = branches.trim_matches(&['(', ')'][..]).split_once(", ").unwrap();
+        map.insert(node, Branch { left, right });
+    }
+
+    (part1(&map, directions_to_take.clone()), part2(&map, directions_to_take))
+}
