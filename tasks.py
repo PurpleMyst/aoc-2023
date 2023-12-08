@@ -300,10 +300,9 @@ def set_completion_time() -> None:
         print(cb("Not in a day directory.", "red"))
         return
 
-    with WORKSPACE_MANIFEST_PATH.open() as manifest_f:
-        manifest = toml.load(manifest_f)
+    manifest = toml.parse(WORKSPACE_MANIFEST_PATH.read_text())
     metadata = manifest["workspace"].setdefault("metadata", {})  # type: ignore
-    metadata.setdefault(f"day{day:02}", {})["completion_time"] = datetime.now()
+    metadata.setdefault(day, {})["completion_time"] = datetime.now()
 
     with WORKSPACE_MANIFEST_PATH.open("w") as manifest_f:
         toml.dump(manifest, manifest_f)
