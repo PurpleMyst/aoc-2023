@@ -5,8 +5,8 @@ mod part2;
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display) {
-    (
-        part1::solve(include_str!("input.txt")),
-        part2::solve(include_str!("input.txt")),
+    rayon::join(
+        || part1::solve(include_str!("input.txt")),
+        || part2::solve(include_str!("input.txt")),
     )
 }
