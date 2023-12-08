@@ -123,5 +123,5 @@ pub fn solve() -> (impl Display, impl Display) {
         map.insert(node, Branch { left, right });
     }
 
-    (part1(&map, directions_to_take.clone()), part2(&map, directions_to_take))
+    rayon::join(|| part1(&map, directions_to_take.clone()), || part2(&map, directions_to_take.clone()))
 }
