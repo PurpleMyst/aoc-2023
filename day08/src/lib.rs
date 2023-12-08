@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use ahash::{HashMap, HashMapExt};
+use rayon::prelude::*;
 
 const START: &str = "AAA";
 const GOAL: &str = "ZZZ";
@@ -61,15 +62,15 @@ fn lcm(a: usize, b: usize) -> usize {
 
 fn part2<I>(map: &HashMap<&'static str, Branch>, directions_to_take: I) -> usize
 where
-    I: Iterator<Item = Direction> + Clone,
+    I: Iterator<Item = Direction> + Clone + Sync,
 {
-    let starting_nodes = map.keys().filter(|&&node| node.ends_with('A')).copied();
+    let starting_nodes = map.keys().filter(|&&node| node.ends_with('A')).copied().collect::<Vec<_>>();
 
     // Each node is independent from the others, so we can figure out the number of steps to reach
     // the goal for each node, and then find the least common multiple of the cycle length of each.
     // We figure this out by AoC experience and by looking at the map: from the starting node, once
     // we reach a Z node that Z node is then part of a cycle that eventually leads back to itself.
-    let cycle_lengths = starting_nodes.map(|mut node| {
+    let cycle_lengths = starting_nodes.into_par_iter().map(|mut node| {
         let mut directions_to_take = directions_to_take.clone();
         while !node.ends_with('Z') {
             let direction = directions_to_take.next().unwrap();
@@ -98,7 +99,7 @@ where
     });
 
     // Find the least common multiple of the cycle lengths.
-    cycle_lengths.fold(1, |acc, cycle_length| lcm(acc, cycle_length))
+    cycle_lengths.reduce(|| 1, |acc, cycle_length| lcm(acc, cycle_length))
 }
 
 #[inline]
