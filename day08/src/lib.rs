@@ -74,20 +74,13 @@ where
     // the goal for each node, and then find the least common multiple of the cycle length of each.
     // We figure this out by AoC experience and by looking at the map: from the starting node, once
     // we reach a Z node that Z node is then part of a cycle that eventually leads back to itself.
+    //
+    // The input seems to then be designed so that the cycle length is the same as the amount of
+    // steps it takes you to reach the goal the first time!
     let cycle_lengths = starting_nodes.into_par_iter().map(|mut node| {
         let mut directions_to_take = directions_to_take.clone();
-        while !node.ends_with('Z') {
-            let direction = directions_to_take.next().unwrap();
-            let branch = map.get(node).unwrap();
-            node = match direction {
-                Direction::Left => branch.left,
-                Direction::Right => branch.right,
-            };
-        }
-
-        let ending_node = node;
         let mut steps = 0;
-        loop {
+        while !node.ends_with('Z') {
             steps += 1;
             let direction = directions_to_take.next().unwrap();
             let branch = map.get(node).unwrap();
@@ -95,9 +88,6 @@ where
                 Direction::Left => branch.left,
                 Direction::Right => branch.right,
             };
-            if node == ending_node {
-                break;
-            }
         }
         steps
     });
