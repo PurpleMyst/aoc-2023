@@ -64,7 +64,11 @@ fn part2<I>(map: &HashMap<&'static str, Branch>, directions_to_take: I) -> usize
 where
     I: Iterator<Item = Direction> + Clone + Sync,
 {
-    let starting_nodes = map.keys().filter(|&&node| node.ends_with('A')).copied().collect::<Vec<_>>();
+    let starting_nodes = map
+        .keys()
+        .filter(|&&node| node.ends_with('A'))
+        .copied()
+        .collect::<Vec<_>>();
 
     // Each node is independent from the others, so we can figure out the number of steps to reach
     // the goal for each node, and then find the least common multiple of the cycle length of each.
@@ -123,5 +127,8 @@ pub fn solve() -> (impl Display, impl Display) {
         map.insert(node, Branch { left, right });
     }
 
-    rayon::join(|| part1(&map, directions_to_take.clone()), || part2(&map, directions_to_take.clone()))
+    rayon::join(
+        || part1(&map, directions_to_take.clone()),
+        || part2(&map, directions_to_take.clone()),
+    )
 }

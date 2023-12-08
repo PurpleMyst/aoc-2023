@@ -85,7 +85,8 @@ impl PartialOrd for Hand {
 
 impl Ord for Hand {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.htype().cmp(&other.htype())
+        self.htype()
+            .cmp(&other.htype())
             .then_with(|| self.0.cmp(&other.0).reverse())
     }
 }
