@@ -14,7 +14,7 @@ pub fn solve() -> (impl Display, impl Display) {
     include_str!("input.txt")
         .lines()
         .map(|line| {
-            let mut report: Vec<i64> = line.split_ascii_whitespace().map(|n| n.parse().unwrap()).collect();
+            let mut report: Vec<i64> = line.split(' ').map(|n| n.parse().unwrap()).collect();
             let mut p1 = *report.last().unwrap();
             let mut p2 = *report.first().unwrap();
             let mut negated = true;
