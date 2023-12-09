@@ -9,33 +9,20 @@ fn diff(x: &mut Vec<i64>) {
     }
 }
 
-fn part1() -> i64 {
-    include_str!("input.txt").lines().map(|line| {
-        let mut report: Vec<i64> = line.split_ascii_whitespace().map(|n| n.parse().unwrap()).collect();
-        let mut extrapolated_value = *report.last().unwrap();
-        while !report.iter().all(|&n| n == 0) {
-            diff(&mut report);
-            extrapolated_value += report.last().unwrap();
-        }
-        extrapolated_value
-    }).sum()
-}
-
-fn part2() -> i64 {
-    let mut history = Vec::new();
-    include_str!("input.txt").lines().map(|line| {
-        let mut report: Vec<i64> = line.split_ascii_whitespace().map(|n| n.parse().unwrap()).collect();
-        while !report.iter().all(|&n| n == 0) {
-            history.push(*report.first().unwrap());
-            diff(&mut report);
-        }
-        history.drain(..).rev().fold(0, |acc, v| {
-            v - acc
-        })
-    }).sum()
-}
-
 #[inline]
 pub fn solve() -> (impl Display, impl Display) {
-    rayon::join(|| part1(), || part2())
+    include_str!("input.txt").lines().map(|line| {
+        let mut report: Vec<i64> = line.split_ascii_whitespace().map(|n| n.parse().unwrap()).collect();
+        let mut p1 = *report.last().unwrap();
+        let mut p2 = *report.first().unwrap();
+        let mut negated = true;
+        while !report.iter().all(|&n| n == 0) {
+            diff(&mut report);
+            let f = *report.first().unwrap();
+            p1 += report.last().unwrap();
+            p2 += if negated { -f } else { f };
+            negated = !negated;
+        }
+        (p1, p2)
+    }).reduce(|(p11, p21), (p12, p22)| (p11 + p12, p21 + p22)).unwrap()
 }
