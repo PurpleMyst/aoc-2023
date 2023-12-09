@@ -11,18 +11,22 @@ fn diff(x: &mut Vec<i64>) {
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display) {
-    include_str!("input.txt").lines().map(|line| {
-        let mut report: Vec<i64> = line.split_ascii_whitespace().map(|n| n.parse().unwrap()).collect();
-        let mut p1 = *report.last().unwrap();
-        let mut p2 = *report.first().unwrap();
-        let mut negated = true;
-        while !report.iter().all(|&n| n == 0) {
-            diff(&mut report);
-            let f = *report.first().unwrap();
-            p1 += report.last().unwrap();
-            p2 += if negated { -f } else { f };
-            negated = !negated;
-        }
-        (p1, p2)
-    }).reduce(|(p11, p21), (p12, p22)| (p11 + p12, p21 + p22)).unwrap()
+    include_str!("input.txt")
+        .lines()
+        .map(|line| {
+            let mut report: Vec<i64> = line.split_ascii_whitespace().map(|n| n.parse().unwrap()).collect();
+            let mut p1 = *report.last().unwrap();
+            let mut p2 = *report.first().unwrap();
+            let mut negated = true;
+            while !report.iter().all(|&n| n == 0) {
+                diff(&mut report);
+                let f = *report.first().unwrap();
+                p1 += report.last().unwrap();
+                p2 += if negated { -f } else { f };
+                negated = !negated;
+            }
+            (p1, p2)
+        })
+        .reduce(|(p11, p21), (p12, p22)| (p11 + p12, p21 + p22))
+        .unwrap()
 }
