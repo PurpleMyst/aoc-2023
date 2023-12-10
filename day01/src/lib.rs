@@ -27,17 +27,15 @@ pub fn solve() -> (impl Display, impl Display) {
             while !line.is_empty() {
                 let digit = if line[0].is_ascii_digit() {
                     Some(usize::from(line[0] - b'0'))
-                } else if let Some(n) = DIGITS.iter().position(|&d| line.starts_with(d)) {
-                    Some(n + 1)
                 } else {
-                    None
+                    DIGITS.iter().position(|&d| line.starts_with(d)).map(|n| n + 1)
                 };
                 first = first.or(digit);
                 last = digit.or(last);
                 line = &line[1..];
             }
-            let answer = first.unwrap() * 10 + last.unwrap();
-            answer
+
+            first.unwrap() * 10 + last.unwrap()
         })
         .sum::<usize>();
 

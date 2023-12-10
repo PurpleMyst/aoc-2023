@@ -4,7 +4,7 @@ fn diff(x: &mut Vec<i64>) {
     let mut first = x.remove(0);
     for value in x.iter_mut() {
         let tmp = *value;
-        *value = *value - first;
+        *value -= first;
         first = tmp;
     }
 }

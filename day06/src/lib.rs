@@ -9,8 +9,8 @@ fn calculate_answer((time, distance): (f64, f64)) -> f64 {
     // which is a quadratic equation in v. we can build the parabola
     // and find the integer range in which this works.
 
-    let v2 = (time as f64 + (time * time - 4. * distance).sqrt()) / 2.;
-    let v1 = (time as f64 - (time * time - 4. * distance).sqrt()) / 2.;
+    let v2 = (time + (time * time - 4. * distance).sqrt()) / 2.;
+    let v1 = (time - (time * time - 4. * distance).sqrt()) / 2.;
 
     let low = if v1 == v1.ceil() { v1 + 1. } else { v1.ceil() };
     let high = if v2 == v2.floor() { v2 } else { v2.ceil() };
@@ -39,19 +39,19 @@ pub fn solve() -> (impl Display, impl Display) {
     let time = input
         .next()
         .unwrap()
-        .split_once(":")
+        .split_once(':')
         .unwrap()
         .1
-        .replace(" ", "")
+        .replace(' ', "")
         .parse::<f64>()
         .unwrap();
     let distance = input
         .next()
         .unwrap()
-        .split_once(":")
+        .split_once(':')
         .unwrap()
         .1
-        .replace(" ", "")
+        .replace(' ', "")
         .parse::<f64>()
         .unwrap();
     let part2 = calculate_answer((time, distance));

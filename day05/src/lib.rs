@@ -18,7 +18,7 @@ fn part1() -> impl Display {
     let mut next_seeds: Vec<usize> = Vec::new();
     while let Some(_) = lines.next() {
         // while there is a next map
-        while let Some(next_line) = lines.next() {
+        for next_line in lines.by_ref() {
             if next_line.is_empty() {
                 break;
             }
@@ -40,8 +40,7 @@ fn part1() -> impl Display {
         seeds.append(&mut next_seeds);
     }
 
-    let part1 = seeds.into_iter().min().unwrap();
-    part1
+    seeds.into_iter().min().unwrap()
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -114,7 +113,7 @@ fn part2() -> impl Display {
     let mut add_buffer = Vec::new();
     while let Some(_header) = lines.next() {
         // while there is a next map
-        while let Some(next_line) = lines.next() {
+        for next_line in lines.by_ref() {
             if next_line.is_empty() {
                 break;
             }

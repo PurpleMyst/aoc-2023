@@ -93,7 +93,7 @@ where
     });
 
     // Find the least common multiple of the cycle lengths.
-    cycle_lengths.reduce(|| 1, |acc, cycle_length| lcm(acc, cycle_length))
+    cycle_lengths.reduce(|| 1, lcm)
 }
 
 #[inline]

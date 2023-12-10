@@ -29,7 +29,7 @@ pub fn solve() -> (impl Display, impl Display) {
         let mut number_so_far = 0;
 
         for (x, b) in row.bytes().enumerate() {
-            if matches!(b, b'0'..=b'9') {
+            if b.is_ascii_digit() {
                 number_so_far = number_so_far * 10 + (b - b'0') as u64;
 
                 for dx in -1..=1 {

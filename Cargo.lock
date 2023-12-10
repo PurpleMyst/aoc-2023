@@ -53,6 +53,7 @@ dependencies = [
  "day07",
  "day08",
  "day09",
+ "day10",
  "iai",
 ]
 
@@ -300,6 +301,10 @@ version = "0.1.0"
 dependencies = [
  "rayon",
 ]
+
+[[package]]
+name = "day10"
+version = "0.1.0"
 
 [[package]]
 name = "either"

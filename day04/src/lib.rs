@@ -21,7 +21,7 @@ pub fn solve() -> (impl Display, impl Display) {
         .map(|(id, line)| {
             let (winners, candidates) = line.split_once(": ").unwrap().1.split_once(" | ").unwrap();
             let winners = parse_numbers(winners).collect::<Vec<_>>();
-            let matching_numbers = parse_numbers(candidates).filter(|n| winners.contains(&n)).count();
+            let matching_numbers = parse_numbers(candidates).filter(|n| winners.contains(n)).count();
             Card {
                 id: id + 1,
                 matching_numbers,
