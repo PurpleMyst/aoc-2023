@@ -196,6 +196,7 @@ def iai() -> None:
 @aliases("wr")
 def watch_run() -> None:
     "Run the solution everytime it changes."
+    del environ["RUSTFLAGS"]
     run(("cargo", "watch", "--clear", "--exec", "run"))
 
 
