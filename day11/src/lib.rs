@@ -7,12 +7,12 @@ fn do_solve(padding: usize) -> usize {
         .collect::<Vec<_>>();
 
     // Find which rows need to be expanded.
-    let empty_row_indices = space
+    let mut empty_row_indices = space
         .iter()
         .enumerate()
         .filter(|(_, row)| row.iter().all(|&c| !c))
         .map(|(y, _)| y)
-        .collect::<Vec<_>>();
+        .peekable();
     let empty_col_indices = (0..space[0].len())
         .filter(|&x| space.iter().all(|row| !row[x]))
         .collect::<Vec<_>>();
@@ -20,15 +20,25 @@ fn do_solve(padding: usize) -> usize {
     // Expand the space! Each point after an expansion is offset by the number of
     // empty rows/cols before it times the padding.
     let mut vertices = Vec::new();
+    let mut y_offset = 0;
     for (y, row) in space.iter().enumerate() {
-        let y_offset = empty_row_indices.iter().filter(|&&i| i <= y).count() * padding;
+        if empty_row_indices.peek().filter(|&&ey| ey == y).is_some() {
+            y_offset += padding;
+            empty_row_indices.next();
+            continue;
+        }
 
+        let mut empty_col_indices = empty_col_indices.iter().copied().peekable();
+        let mut x_offset = 0;
         for (x, &cell) in row.iter().enumerate() {
+            if empty_col_indices.peek().filter(|&&ex| ex == x).is_some() {
+                x_offset += padding;
+                empty_col_indices.next();
+                continue;
+            }
             if !cell {
                 continue;
             };
-            let x_offset = empty_col_indices.iter().filter(|&&i| i <= x).count() * padding;
-
             vertices.push((x + x_offset, y + y_offset));
         }
     }
