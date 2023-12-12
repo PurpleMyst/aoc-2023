@@ -256,7 +256,7 @@ def fetch_problem(year, day) -> None:
     soup = BeautifulSoup(resp.text, features="html.parser").main
     h = html2text.HTML2Text()
     t = h.handle(str(soup)).strip()
-    Path(f"day{day:02}", "problem.md").write_text(t)
+    Path(f"day{day:02}", "problem.md").write_text(t, newline="\n")
 
 
 def show_session_cookie() -> None:
