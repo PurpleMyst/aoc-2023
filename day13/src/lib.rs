@@ -48,12 +48,19 @@ fn process_map(map: &str, tolerance: usize) -> usize {
     for y in 1..rows.len() {
         let mut before = &rows[..y];
         let mut after = &rows[y..];
-            if before.len() < after.len() {
-                after = &after[..before.len()];
-            } else {
-                before = &before[before.len() - after.len()..];
-            }
-        if before.iter().rev().zip(after.iter()).map(|(a, b)| count_diffs(a, b)).sum::<usize>() == tolerance {
+        if before.len() < after.len() {
+            after = &after[..before.len()];
+        } else {
+            before = &before[before.len() - after.len()..];
+        }
+        if before
+            .iter()
+            .rev()
+            .zip(after.iter())
+            .map(|(a, b)| count_diffs(a, b))
+            .sum::<usize>()
+            == tolerance
+        {
             show_horizontal_reflection(map, y);
 
             return 100 * y;
@@ -63,16 +70,20 @@ fn process_map(map: &str, tolerance: usize) -> usize {
     // check vertical line of reflection
     let width = rows[0].len();
     for x in 1..width {
-        if (0..rows.len()).map(|y| {
-            let mut before = &rows[y][..x];
-            let mut after = &rows[y][x..];
-            if before.len() < after.len() {
-                after = &after[..before.len()];
-            } else {
-                before = &before[before.len() - after.len()..];
-            }
-            before.chars().rev().zip(after.chars()).filter(|(a, b)| a != b).count()
-        }).sum::<usize>() == tolerance {
+        if (0..rows.len())
+            .map(|y| {
+                let mut before = &rows[y][..x];
+                let mut after = &rows[y][x..];
+                if before.len() < after.len() {
+                    after = &after[..before.len()];
+                } else {
+                    before = &before[before.len() - after.len()..];
+                }
+                before.chars().rev().zip(after.chars()).filter(|(a, b)| a != b).count()
+            })
+            .sum::<usize>()
+            == tolerance
+        {
             show_vertical_reflection(map, x);
             return x;
         }
@@ -85,16 +96,15 @@ fn process_map(map: &str, tolerance: usize) -> usize {
 pub fn solve() -> (impl Display, impl Display) {
     let input = include_str!("input.txt").split("\n\n");
 
-    let part1 = input.clone()
-        .map(|map| process_map(map, 0))
-        .sum::<usize>();
+    let part1 = input.clone().map(|map| process_map(map, 0)).sum::<usize>();
     dbg!();
     println!("=============PART 2 START=========================");
 
-    let part2 = input
-        .map(|map| process_map(map, 1))
-        .sum::<usize>();
-    debug_assert!(part2 > 10_000 && part2 < 35_975, "{part2} not in correct range! (part1 was {part1})");
+    let part2 = input.map(|map| process_map(map, 1)).sum::<usize>();
+    debug_assert!(
+        part2 > 10_000 && part2 < 35_975,
+        "{part2} not in correct range! (part1 was {part1})"
+    );
 
     (part1, part2)
 }
