@@ -73,7 +73,7 @@ pub fn solve() -> (impl Display, impl Display) {
             Pipe::SW => [(n.0 - 1, n.1), (n.0, n.1 + 1)],
             Pipe::SE => [(n.0, n.1 + 1), (n.0 + 1, n.1)],
         };
-        q.extend_from_slice(&neighbors.map(|n| (n, d + 1)).as_slice());
+        q.extend_from_slice(neighbors.map(|n| (n, d + 1)).as_slice());
     }
 
     // Find the furthest point from the start.
@@ -90,7 +90,7 @@ pub fn solve() -> (impl Display, impl Display) {
     // main loop.
     let part2 = map
         .into_iter()
-        .zip(distance_map.into_iter())
+        .zip(distance_map)
         .map(|(map_row, dist_row)| {
             let mut inside = false;
             let mut counter = 0;

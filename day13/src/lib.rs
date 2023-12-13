@@ -15,7 +15,7 @@ fn show_vertical_reflection(map: &str, x: usize) {
         out.push_str(&rows[y][x..]);
         out.push('\n');
     }
-    let out = out.replace(".", "░").replace("#", "█");
+    let out = out.replace('.', "░").replace('#', "█");
     println!("{out}\n");
 }
 
@@ -34,13 +34,13 @@ fn show_horizontal_reflection(map: &str, y: usize) {
         out.push_str(rows[y]);
         out.push('\n');
     }
-    let out = out.replace(".", "░").replace("#", "█");
+    let out = out.replace('.', "░").replace('#', "█");
     println!("{out}\n");
 }
 
 fn process_map(map: &str, tolerance: usize) -> usize {
     println!("ORIGINAL MAP");
-    println!("{}\n", map.replace(".", "░").replace("#", "█"));
+    println!("{}\n", map.replace('.', "░").replace('#', "█"));
     println!("REFLECTED MAP");
 
     // check horizontal line of reflection

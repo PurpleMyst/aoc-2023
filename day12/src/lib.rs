@@ -10,7 +10,7 @@ fn part1(input: &str) -> usize {
         .lines()
         .collect::<Vec<_>>()
         .into_par_iter()
-        .map(|line| create_permutations(line))
+        .map(create_permutations)
         .sum()
 }
 
