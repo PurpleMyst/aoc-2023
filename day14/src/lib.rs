@@ -1,4 +1,4 @@
-use std::{fmt::Display};
+use std::fmt::Display;
 
 use ahash::{HashMap, HashMapExt};
 
@@ -75,11 +75,10 @@ fn tilt_west(map: &mut Map) {
     });
 }
 
-fn total_load(map: &Map) -> usize {
-    let height = map.len();
+fn total_load(map: &Map) -> u32 {
     map.iter()
-        .zip((1..=height).rev())
-        .map(|(row, weight)| row.iter().filter(|&&cell| cell == Cell::Sphere).count() * weight)
+        .zip((1..=HEIGHT).rev())
+        .map(|(row, weight)| row.iter().filter(|&&cell| cell == Cell::Sphere).count() as u32 * weight as u32)
         .sum()
 }
 
@@ -117,13 +116,17 @@ pub fn solve() -> (impl Display, impl Display) {
     };
 
     let mut cycle_nums = HashMap::new();
-    let (cycles_before_loop, cycle_len) = (0..)
+    let mut last = 0;
+    let (cycles_before_loop, cycle_len) = (1..)
         .find_map(|cycle_num| {
             spin_cycle(&mut map);
-            Some((cycle_num, cycle_num - cycle_nums.insert(map.clone(), cycle_num)?))
+            let load = total_load(&map);
+            let key = (load, last);
+            last = load;
+            Some((cycle_num, cycle_num - cycle_nums.insert(key, cycle_num)?))
         })
         .unwrap();
-    let cycles_remaining = (TOTAL_CYCLES - (cycles_before_loop + 1)) % cycle_len;
+    let cycles_remaining = (TOTAL_CYCLES - cycles_before_loop) % cycle_len;
     for _ in 0..cycles_remaining {
         spin_cycle(&mut map);
     }
