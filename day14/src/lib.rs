@@ -1,6 +1,6 @@
-use std::fmt::Display;
+use std::{fmt::Display};
 
-use ahash::{HashSet, HashSetExt};
+use ahash::{HashMap, HashMapExt};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Cell {
@@ -116,22 +116,14 @@ pub fn solve() -> (impl Display, impl Display) {
         total_load(&map)
     };
 
-    let mut visited = HashSet::new();
-    let cycles_before_loop = (0..)
-        .find(|_| {
+    let mut cycle_nums = HashMap::new();
+    let (cycles_before_loop, cycle_len) = (0..)
+        .find_map(|cycle_num| {
             spin_cycle(&mut map);
-            !visited.insert(map.clone())
-        })
-        .unwrap()
-        + 1;
-    let mut map2 = map.clone();
-    let cycle_len = (1..)
-        .find(|_| {
-            spin_cycle(&mut map2);
-            map2 == map
+            Some((cycle_num, cycle_num - cycle_nums.insert(map.clone(), cycle_num)?))
         })
         .unwrap();
-    let cycles_remaining = (TOTAL_CYCLES - cycles_before_loop) % cycle_len;
+    let cycles_remaining = (TOTAL_CYCLES - (cycles_before_loop + 1)) % cycle_len;
     for _ in 0..cycles_remaining {
         spin_cycle(&mut map);
     }
