@@ -52,7 +52,7 @@ fn tilt_east(map: &mut Map) {
             if row[x] == Cell::Sphere {
                 free_spot -= 1;
                 row[x] = Cell::Empty;
-                row[free_spot as usize] = Cell::Sphere;
+                row[free_spot] = Cell::Sphere;
             } else if row[x] == Cell::Cube {
                 free_spot = x;
             }
