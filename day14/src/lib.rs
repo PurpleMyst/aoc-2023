@@ -12,79 +12,67 @@ enum Cell {
 type Map = Vec<Vec<Cell>>;
 
 const TOTAL_CYCLES: usize = 1_000_000_000;
+const WIDTH: usize = 100;
+const HEIGHT: usize = 100;
 
 fn tilt_north(map: &mut Map) {
-    loop {
-        let mut moved = false;
-        for y in 0..map.len() {
-            for x in 0..map[y].len() {
-                if map[y][x] == Cell::Sphere && y != 0 && map[y - 1][x] == Cell::Empty {
-                    map[y][x] = Cell::Empty;
-                    map[y - 1][x] = Cell::Sphere;
-                    moved = true;
-                }
+    let mut free_spots = [-1isize; WIDTH];
+    for y in 0..HEIGHT {
+        for x in 0..WIDTH {
+            if map[y][x] == Cell::Sphere {
+                free_spots[x] += 1;
+                map[y][x] = Cell::Empty;
+                map[free_spots[x] as usize][x] = Cell::Sphere;
+            } else if map[y][x] == Cell::Cube {
+                free_spots[x] = y as isize;
             }
-        }
-        if !moved {
-            break;
         }
     }
 }
 
 fn tilt_south(map: &mut Map) {
-    loop {
-        let mut moved = false;
-        for y in 0..map.len() {
-            for x in 0..map[y].len() {
-                if map[y][x] == Cell::Sphere && y != map.len() - 1 && map[y + 1][x] == Cell::Empty {
-                    map[y][x] = Cell::Empty;
-                    map[y + 1][x] = Cell::Sphere;
-                    moved = true;
-                }
+    let mut free_spots = [HEIGHT; WIDTH];
+    for y in (0..HEIGHT).rev() {
+        for x in 0..WIDTH {
+            if map[y][x] == Cell::Sphere {
+                free_spots[x] -= 1;
+                map[y][x] = Cell::Empty;
+                map[free_spots[x]][x] = Cell::Sphere;
+            } else if map[y][x] == Cell::Cube {
+                free_spots[x] = y;
             }
-        }
-        if !moved {
-            break;
         }
     }
 }
 
 fn tilt_east(map: &mut Map) {
-    loop {
-        let mut moved = false;
-
-        for row in map.iter_mut() {
-            for x in 0..row.len() {
-                if row[x] == Cell::Sphere && x != row.len() - 1 && row[x + 1] == Cell::Empty {
-                    row[x] = Cell::Empty;
-                    row[x + 1] = Cell::Sphere;
-                    moved = true;
-                }
+    map.iter_mut().for_each(|row| {
+        let mut free_spot = WIDTH;
+        for x in (0..WIDTH).rev() {
+            if row[x] == Cell::Sphere {
+                free_spot -= 1;
+                row[x] = Cell::Empty;
+                row[free_spot as usize] = Cell::Sphere;
+            } else if row[x] == Cell::Cube {
+                free_spot = x;
             }
         }
-        if !moved {
-            break;
-        }
-    }
+    });
 }
 
 fn tilt_west(map: &mut Map) {
-    loop {
-        let mut moved = false;
-
-        for row in map.iter_mut() {
-            for x in 0..row.len() {
-                if row[x] == Cell::Sphere && x != 0 && row[x - 1] == Cell::Empty {
-                    row[x] = Cell::Empty;
-                    row[x - 1] = Cell::Sphere;
-                    moved = true;
-                }
+    map.iter_mut().for_each(|row| {
+        let mut free_spot = -1;
+        for x in 0..WIDTH {
+            if row[x] == Cell::Sphere {
+                free_spot += 1;
+                row[x] = Cell::Empty;
+                row[free_spot as usize] = Cell::Sphere;
+            } else if row[x] == Cell::Cube {
+                free_spot = x as isize;
             }
         }
-        if !moved {
-            break;
-        }
-    }
+    });
 }
 
 fn total_load(map: &Map) -> usize {
@@ -119,6 +107,8 @@ pub fn solve() -> (impl Display, impl Display) {
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
+    debug_assert_eq!(map[0].len(), WIDTH);
+    debug_assert_eq!(map.len(), HEIGHT);
 
     let part1 = {
         let mut map = map.clone();
