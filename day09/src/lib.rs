@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-fn diff(x: &mut Vec<i64>) {
+use rayon::prelude::*;
+
+fn diff(x: &mut Vec<i32>) {
     let mut first = x.remove(0);
     for value in x.iter_mut() {
         let tmp = *value;
@@ -13,8 +15,10 @@ fn diff(x: &mut Vec<i64>) {
 pub fn solve() -> (impl Display, impl Display) {
     include_str!("input.txt")
         .lines()
+        .collect::<Vec<_>>()
+        .into_par_iter()
         .map(|line| {
-            let mut report: Vec<i64> = line.split(' ').map(|n| n.parse().unwrap()).collect();
+            let mut report: Vec<i32> = line.split(' ').map(|n| n.parse().unwrap()).collect();
             let mut p1 = *report.last().unwrap();
             let mut p2 = *report.first().unwrap();
             let mut negated = true;
@@ -27,6 +31,5 @@ pub fn solve() -> (impl Display, impl Display) {
             }
             (p1, p2)
         })
-        .reduce(|(p11, p21), (p12, p22)| (p11 + p12, p21 + p22))
-        .unwrap()
+        .reduce(|| (0, 0), |(p11, p21), (p12, p22)| (p11 + p12, p21 + p22))
 }
