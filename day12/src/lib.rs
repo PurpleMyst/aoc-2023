@@ -45,6 +45,18 @@ fn create_permutations(line: &str) -> usize {
     let groups: Vec<usize> = groups.split(',').map(|s| s.parse().unwrap()).collect();
     let springs: Vec<char> = springs.chars().collect();
 
+    // Calculate the suffix sums of the groups, as we'll need them later to prune invalid states.
+    let mut groups_suffix_sums: Vec<usize> = groups
+        .iter()
+        .rev()
+        .scan(0, |sum, &x| {
+            *sum += x;
+            Some(*sum)
+        })
+        .collect();
+    groups_suffix_sums.reverse();
+
+    // Double-buffered HashMaps to store the states, counting repetitions.
     let mut states: HashMap<(usize, usize), usize> = HashMap::default();
     states.insert((0, 0), 1);
     let mut new_states = HashMap::default();
@@ -69,13 +81,12 @@ fn create_permutations(line: &str) -> usize {
                     }
                 }
                 '?' => {
-                    // Process as #
+                    // Process as '#'.
                     if group_idx < groups.len() && group_len < groups[group_idx] {
-                        // new_permutations.push((group_idx, group_len + 1, permutations));
                         *new_states.entry((group_idx, group_len + 1)).or_default() += permutations;
                     }
 
-                    // Process as .
+                    // Process as '.'.
                     if group_len == 0 {
                         *new_states.entry((group_idx, group_len)).or_default() += permutations;
                     } else if group_len == groups[group_idx] {
@@ -88,11 +99,7 @@ fn create_permutations(line: &str) -> usize {
 
         std::mem::swap(&mut states, &mut new_states);
         states.retain(|&(group_idx, group_len), _| {
-            if group_idx >= groups.len() {
-                group_len == 0
-            } else {
-                springs_left + group_len >= groups.iter().skip(group_idx).sum()
-            }
+            group_idx == groups.len() || (springs_left + group_len >= groups_suffix_sums[group_idx])
         });
     }
 
