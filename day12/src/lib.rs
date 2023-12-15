@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
-use ahash::{HashMap, HashMapExt};
 use rayon::prelude::*;
+use rustc_hash::FxHashMap as HashMap;
 
 // Adapted from https://redd.it/18gomx5 with the help of ChatGPT and GitHub Copilot!
 
@@ -46,7 +46,7 @@ fn create_permutations(line: &str) -> usize {
     let springs: Vec<char> = all_springs.chars().collect();
 
     let mut spring_permutations = vec![(0, 0, 1)];
-    let mut spring_permutation_counts: HashMap<(usize, usize), usize> = HashMap::new();
+    let mut spring_permutation_counts: HashMap<(usize, usize), usize> = HashMap::default();
     spring_permutation_counts.insert((0, 0), 1);
 
     let mut springs_checked = 0;
