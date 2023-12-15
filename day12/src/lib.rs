@@ -26,8 +26,8 @@ fn part2(input: &str) -> usize {
 
 fn unfold(line: &str) -> String {
     let (springs, config) = line.split_once(' ').unwrap();
-    let mut unfolded_springs = String::new();
-    let mut unfolded_config = String::new();
+    let mut unfolded_springs = String::with_capacity(6 * springs.len());
+    let mut unfolded_config = String::with_capacity(6 * config.len());
     for i in 0..5 {
         if i != 0 {
             unfolded_springs.push('?');
