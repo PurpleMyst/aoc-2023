@@ -55,6 +55,7 @@ fn create_permutations(line: &str) -> usize {
         })
         .collect();
     groups_suffix_sums.reverse();
+    groups_suffix_sums.push(0);
 
     // Double-buffered HashMaps to store the states, counting repetitions.
     let mut states: HashMap<(usize, usize), usize> = HashMap::default();
@@ -62,6 +63,7 @@ fn create_permutations(line: &str) -> usize {
     let mut new_states = HashMap::default();
 
     for (&spring, springs_left) in springs.iter().zip((0..springs.len()).rev()) {
+        // Iterate over the states, advancing them.
         for ((group_idx, group_len), permutations) in states.drain() {
             match spring {
                 '#' => {
@@ -97,12 +99,16 @@ fn create_permutations(line: &str) -> usize {
             }
         }
 
+        // Swap over the new states, keeping in mind we've already cleared the old states via drain.
         std::mem::swap(&mut states, &mut new_states);
+
+        // Prune the states that are guaranteed to be invalid.
         states.retain(|&(group_idx, group_len), _| {
-            group_idx == groups.len() || (springs_left + group_len >= groups_suffix_sums[group_idx])
+            springs_left + group_len >= groups_suffix_sums[group_idx]
         });
     }
 
+    // Return how many states got to the end, staying valid.
     states.values().copied().sum()
 }
 
