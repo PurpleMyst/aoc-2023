@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
-use ahash::{HashMap, HashMapExt};
+// use fxhash::{HashMap, HashMapExt};
+use rustc_hash::FxHashMap as HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Cell {
@@ -115,7 +116,7 @@ pub fn solve() -> (impl Display, impl Display) {
         total_load(&map)
     };
 
-    let mut cycle_nums = HashMap::new();
+    let mut cycle_nums = HashMap::default();
     let mut last = 0;
     let (cycles_before_loop, cycle_len) = (1..)
         .find_map(|cycle_num| {
