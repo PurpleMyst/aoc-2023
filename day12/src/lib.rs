@@ -103,9 +103,7 @@ fn create_permutations(line: &str) -> usize {
         std::mem::swap(&mut states, &mut new_states);
 
         // Prune the states that are guaranteed to be invalid.
-        states.retain(|&(group_idx, group_len), _| {
-            springs_left + group_len >= groups_suffix_sums[group_idx]
-        });
+        states.retain(|&(group_idx, group_len), _| springs_left + group_len >= groups_suffix_sums[group_idx]);
     }
 
     // Return how many states got to the end, staying valid.
