@@ -40,78 +40,63 @@ fn unfold(line: &str) -> String {
 }
 
 fn create_permutations(line: &str) -> usize {
-    let (all_springs, spring_condition) = line.split_once(' ').unwrap();
+    // Parse the input.
+    let (springs, groups) = line.split_once(' ').unwrap();
+    let groups: Vec<usize> = groups.split(',').map(|s| s.parse().unwrap()).collect();
+    let springs: Vec<char> = springs.chars().collect();
 
-    let conditions: Vec<usize> = spring_condition.split(',').map(|s| s.parse().unwrap()).collect();
-    let springs: Vec<char> = all_springs.chars().collect();
+    let mut states: HashMap<(usize, usize), usize> = HashMap::default();
+    states.insert((0, 0), 1);
+    let mut new_states = HashMap::default();
 
-    let mut spring_permutations = vec![(0, 0, 1)];
-    let mut spring_permutation_counts: HashMap<(usize, usize), usize> = HashMap::default();
-    spring_permutation_counts.insert((0, 0), 1);
-
-    let mut springs_checked = 0;
-    for &spring in springs.iter() {
-        let mut new_permutations = vec![];
-        for (&(group_idx, group_len), &permutations) in spring_permutation_counts.iter() {
+    for (&spring, springs_left) in springs.iter().zip((0..springs.len()).rev()) {
+        for ((group_idx, group_len), permutations) in states.drain() {
             match spring {
                 '#' => {
                     // If we haven't run out of groups and the current group is not full, we can
                     // advance this state.
-                    if group_idx < conditions.len() && group_len < conditions[group_idx] {
-                        new_permutations.push((group_idx, group_len + 1, permutations));
-                    }
-                }
-                '?' => {
-                    // Process as #
-                    if group_idx < conditions.len() && group_len < conditions[group_idx] {
-                        new_permutations.push((group_idx, group_len + 1, permutations));
-                    }
-
-                    // Process as .
-                    if group_len == 0 {
-                        new_permutations.push((group_idx, group_len, permutations));
-                    } else if group_len == conditions[group_idx] {
-                        new_permutations.push((group_idx + 1, 0, permutations));
+                    if group_idx < groups.len() && group_len < groups[group_idx] {
+                        *new_states.entry((group_idx, group_len + 1)).or_default() += permutations;
                     }
                 }
                 '.' => {
                     if group_len == 0 {
                         // We're not in a group, so leave the state as-is.
-                        new_permutations.push((group_idx, group_len, permutations));
-                    } else if group_len == conditions[group_idx] {
+                        *new_states.entry((group_idx, group_len)).or_default() += permutations;
+                    } else if group_len == groups[group_idx] {
                         // The current group has been broken. Advance to the next group.
-                        new_permutations.push((group_idx + 1, 0, permutations));
+                        *new_states.entry((group_idx + 1, 0)).or_default() += permutations;
+                    }
+                }
+                '?' => {
+                    // Process as #
+                    if group_idx < groups.len() && group_len < groups[group_idx] {
+                        // new_permutations.push((group_idx, group_len + 1, permutations));
+                        *new_states.entry((group_idx, group_len + 1)).or_default() += permutations;
+                    }
+
+                    // Process as .
+                    if group_len == 0 {
+                        *new_states.entry((group_idx, group_len)).or_default() += permutations;
+                    } else if group_len == groups[group_idx] {
+                        *new_states.entry((group_idx + 1, 0)).or_default() += permutations;
                     }
                 }
                 _ => unreachable!(),
             }
         }
 
-        spring_permutations = new_permutations;
-        springs_checked += 1;
-
-        let springs_left = all_springs.len() - springs_checked;
-        spring_permutations = spring_permutations
-            .into_iter()
-            .filter(|&(group_idx, group_len, _)| {
-                if group_idx > conditions.len() {
-                    group_len == 0
-                } else {
-                    springs_left + group_len >= conditions.iter().skip(group_idx).sum()
-                }
-            })
-            .collect();
-
-        spring_permutation_counts.clear();
-        for &(group, amount, permutations) in &spring_permutations {
-            *spring_permutation_counts.entry((group, amount)).or_insert(0) += permutations;
-        }
+        std::mem::swap(&mut states, &mut new_states);
+        states.retain(|&(group_idx, group_len), _| {
+            if group_idx >= groups.len() {
+                group_len == 0
+            } else {
+                springs_left + group_len >= groups.iter().skip(group_idx).sum()
+            }
+        });
     }
 
-    spring_permutations
-        .into_iter()
-        .map(|(_, _, permutations)| permutations)
-        .sum()
+    states.values().copied().sum()
 }
 
 #[inline]
