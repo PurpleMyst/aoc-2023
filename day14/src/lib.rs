@@ -10,7 +10,8 @@ const HEIGHT: usize = 100;
 const FIRST_COL: u128 = 1;
 const LAST_COL: u128 = 1 << (WIDTH - 1);
 
-// Implementation using u128 inspired by https://www.reddit.com/r/adventofcode/comments/18i68p9/2023_day_14_avenues_for_further_optimization/kdet006/
+// Implementation using u128 inspired by:
+// https://reddit.com/r/adventofcode/comments/18i68p9/2023_day_14_avenues_for_further_optimization/kdet006/
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Map {
     blocks: [u128; HEIGHT],
