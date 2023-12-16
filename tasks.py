@@ -182,6 +182,16 @@ def compare(day: str, name: str = DEFAULT_BASELINE) -> None:
 
 
 @in_root_dir
+@aliases("cmp-stash")
+def compare_by_stashing(day: str, name: str = DEFAULT_BASELINE) -> None:
+    "Stash the current changes, set the baseline and then compare the new changes."
+    run(("git", "stash", "push", "-m", "Stashing for benchmarking"))
+    set_baseline(day, name)
+    run(("git", "stash", "pop"))
+    compare(day, name)
+
+
+@in_root_dir
 def criterion(day: str) -> None:
     "Run a criterion benchmark, without caring about baselines."
     run(("cargo", "bench", "--bench", "criterion", "--", day, "--verbose"))
@@ -318,6 +328,7 @@ def main() -> None:
             answer,
             set_baseline,
             compare,
+            compare_by_stashing,
             criterion,
             iai,
             watch_run,

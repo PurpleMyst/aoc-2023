@@ -1,10 +1,12 @@
 use std::{cmp::max, fmt::Display, mem::swap};
 
+use grid::Grid;
 use rayon::prelude::*;
 use rustc_hash::FxHashSet as HashSet;
 
 type Coordinate = u8;
 type Position = (Coordinate, Coordinate);
+type Map = Grid<Cell>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 enum Cell {
@@ -80,18 +82,18 @@ impl Direction {
     }
 }
 
-fn do_solve(map: &Vec<Vec<Cell>>, insertion_point: Position, initial_dir: Direction) -> usize {
+fn do_solve(map: &Map, insertion_point: Position, initial_dir: Direction) -> usize {
     let mut beams = HashSet::default();
     let mut new_beams = HashSet::default();
-    let mut seen_beams = vec![vec![0; map[0].len()]; map.len()];
+    let mut seen_beams = Grid::<u8>::new(map.rows(), map.cols());
 
     // Account for the possibility that the insertion point is already some sort of special tile.
-    map[insertion_point.1 as usize][insertion_point.0 as usize].apply_to(insertion_point, initial_dir, &mut beams);
+    map[(insertion_point.1 as usize, insertion_point.0 as usize)].apply_to(insertion_point, initial_dir, &mut beams);
 
     while !beams.is_empty() {
         for ((x, y), dir) in beams.drain() {
             // If there's already been a beam in this spot and moving in this direction, there's no need to recalculate.
-            let pos_seen = &mut seen_beams[y as usize][x as usize];
+            let pos_seen = &mut seen_beams[(y as usize, x as usize)];
             if (*pos_seen) & (1 << dir as u8) != 0 {
                 continue;
             }
@@ -99,10 +101,7 @@ fn do_solve(map: &Vec<Vec<Cell>>, insertion_point: Position, initial_dir: Direct
 
             // Apply the tile's effect and ensure we're still on the map.
             let Some(next_pos) = dir.apply_to((x, y)) else { continue };
-            let Some(next_tile) = map
-                .get(next_pos.1 as usize)
-                .and_then(|row| row.get(next_pos.0 as usize))
-            else {
+            let Some(next_tile) = map.get(next_pos.1 as usize, next_pos.0 as usize) else {
                 continue;
             };
             next_tile.apply_to(next_pos, dir, &mut new_beams);
@@ -110,36 +109,34 @@ fn do_solve(map: &Vec<Vec<Cell>>, insertion_point: Position, initial_dir: Direct
         swap(&mut beams, &mut new_beams);
     }
 
-    seen_beams
-        .into_iter()
-        .map(|row| row.into_iter().filter(|&x| x != 0).count())
-        .sum()
+    seen_beams.iter().filter(|&&seen| seen != 0).count()
 }
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display) {
-    let map = include_str!("input.txt")
+    let input = include_str!("input.txt");
+    let columns = input.lines().next().unwrap().len();
+    let map = input
         .lines()
-        .map(|line| {
-            line.chars()
-                .map(|c| match c {
-                    '.' => Empty,
-                    '/' => ForwardMirror,
-                    '\\' => BackMirror,
-                    '|' => VerticalSplitter,
-                    '-' => HorizontalSplitter,
-                    _ => unreachable!(),
-                })
-                .collect::<Vec<_>>()
+        .flat_map(|line| {
+            line.chars().map(|c| match c {
+                '.' => Empty,
+                '/' => ForwardMirror,
+                '\\' => BackMirror,
+                '|' => VerticalSplitter,
+                '-' => HorizontalSplitter,
+                _ => unreachable!(),
+            })
         })
         .collect::<Vec<_>>();
+    let map = Map::from_vec(map, columns);
 
     // Part 1 is simply one iteration of part 2.
     let part1 = do_solve(&map, (0, 0), Right);
 
     // Part 2 works by just... brute-forcing every possible starting position! :)
-    let width = map[0].len() as Coordinate;
-    let height = map.len() as Coordinate;
+    let width = map.cols() as Coordinate;
+    let height = map.rows() as Coordinate;
     let part2 = max(
         (0..width)
             .into_par_iter()
