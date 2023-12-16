@@ -59,6 +59,7 @@ dependencies = [
  "day13",
  "day14",
  "day15",
+ "day16",
  "iai",
 ]
 
@@ -336,6 +337,14 @@ name = "day15"
 version = "0.1.0"
 dependencies = [
  "indexmap",
+ "rustc-hash",
+]
+
+[[package]]
+name = "day16"
+version = "0.1.0"
+dependencies = [
+ "rayon",
  "rustc-hash",
 ]
 
