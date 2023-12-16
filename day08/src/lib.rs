@@ -1,15 +1,23 @@
 use std::fmt::Display;
 
-use ahash::{HashMap, HashMapExt};
+use rustc_hash::FxHashMap as HashMap;
 use rayon::prelude::*;
 
-const START: &str = "AAA";
-const GOAL: &str = "ZZZ";
+type Node = u32;
+type Map = HashMap<Node, Branch>;
 
-#[derive(Debug)]
+const fn convert_id(s: &str) -> Node{
+    let b = s.as_bytes();
+    Node::from_be_bytes([0, b[0], b[1], b[2]])
+}
+
+const P1_START: Node = convert_id("AAA");
+const P1_GOAL: Node = convert_id("ZZZ");
+
+#[derive(Clone, Copy, Debug)]
 struct Branch {
-    left: &'static str,
-    right: &'static str,
+    left: Node,
+    right: Node,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -27,14 +35,14 @@ impl Display for Direction {
     }
 }
 
-fn part1(map: &HashMap<&'static str, Branch>, mut directions_to_take: impl Iterator<Item = Direction>) -> usize {
-    let mut current = START;
+fn part1(map: &Map, mut directions_to_take: impl Iterator<Item = Direction>) -> usize {
+    let mut current = P1_START;
     for n in 0.. {
-        if current == GOAL {
+        if current == P1_GOAL {
             return n;
         }
 
-        let branch = map.get(current).unwrap();
+        let branch = map.get(&current).unwrap();
         current = match directions_to_take.next().unwrap() {
             Direction::Left => branch.left,
             Direction::Right => branch.right,
@@ -60,13 +68,13 @@ fn lcm(a: usize, b: usize) -> usize {
     }
 }
 
-fn part2<I>(map: &HashMap<&'static str, Branch>, directions_to_take: I) -> usize
+fn part2<I>(map: &Map, directions_to_take: I) -> usize
 where
     I: Iterator<Item = Direction> + Clone + Sync,
 {
     let starting_nodes = map
         .keys()
-        .filter(|&&node| node.ends_with('A'))
+        .filter(|&&node| node & 0xFF == b'A' as Node)
         .copied()
         .collect::<Vec<_>>();
 
@@ -80,10 +88,10 @@ where
     let cycle_lengths = starting_nodes.into_par_iter().map(|mut node| {
         let mut directions_to_take = directions_to_take.clone();
         let mut steps = 0;
-        while !node.ends_with('Z') {
+        while node & 0xFF != b'Z' as Node {
             steps += 1;
             let direction = directions_to_take.next().unwrap();
-            let branch = map.get(node).unwrap();
+            let branch = map.get(&node).unwrap();
             node = match direction {
                 Direction::Left => branch.left,
                 Direction::Right => branch.right,
@@ -98,7 +106,7 @@ where
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display) {
-    let mut map = HashMap::new();
+    let mut map = Map::default();
     let mut input = include_str!("input.txt").lines();
     let directions_to_take = input
         .next()
@@ -114,7 +122,7 @@ pub fn solve() -> (impl Display, impl Display) {
     for line in input {
         let (node, branches) = line.split_once(" = ").unwrap();
         let (left, right) = branches.trim_matches(&['(', ')'][..]).split_once(", ").unwrap();
-        map.insert(node, Branch { left, right });
+        map.insert(convert_id(node), Branch { left: convert_id(left), right: convert_id(right) });
     }
 
     rayon::join(

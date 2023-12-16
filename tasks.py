@@ -3,9 +3,10 @@ import subprocess
 import sys
 import typing as t
 import webbrowser
+from uuid import uuid4
 from datetime import datetime
 from functools import partial, wraps
-from os import chdir, environ
+from os import chdir, environ, startfile
 from pathlib import Path
 
 import browser_cookie3
@@ -318,6 +319,47 @@ def set_completion_time() -> None:
     with WORKSPACE_MANIFEST_PATH.open("w") as manifest_f:
         toml.dump(manifest, manifest_f)
 
+@in_root_dir
+def flamegraph(day: str, *, remote = "linode") -> None:
+    "Run a flamegraph benchmark on a remote."
+    import tarfile
+    import tempfile
+
+    from rich.console import Console
+
+    console = Console()
+
+    def filter(info):
+        if any(s in info.name for s in (".git", "target")):
+            console.log(f"{info.name!r} [red]skipped.[/red]")
+            return None
+        console.log(f"{info.name!r} [green]added to tarball.[/green]")
+        return info
+    
+    # Generate a zipped tarball of the current source code.
+    archive_stem = str(uuid4())
+    archive_name = f"{archive_stem}.tar.gz"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        archive_path = Path(tmpdir, archive_name)
+        with console.status("Compressing..."), tarfile.open(archive_path, "w:gz") as tar:
+            tar.add(".", filter=filter)
+
+        # Upload it to the remote via scp and untar it.
+        run(("scp", "-C", archive_path, f"{remote}:/tmp/{archive_name}"))
+        run(("ssh", remote, "tar", "-xzf", f"/tmp/{archive_name}", "--one-top-level", "-C", "/tmp"))
+
+    # Run the benchmark on the remote.
+    run(("ssh", remote, "cd", f"/tmp/{archive_stem}", "&&", 
+        "CARGO_PROFILE_BENCH_DEBUG=true", "cargo", "flamegraph", "--bench", "criterion", "--", "--bench", day))
+
+    # Download the flamegraph.
+    run(("scp", f"{remote}:/tmp/{archive_stem}/flamegraph.svg", "."))
+
+    # Remove the archive from the remote.
+    run(("ssh", remote, "rm", "-rf", f"/tmp/{archive_stem}", f"/tmp/{archive_name}"))
+
+    # Open the flamegraph.
+    startfile("flamegraph.svg")
 
 def main() -> None:
     environ["RUST_BACKTRACE"] = "1"
@@ -339,6 +381,7 @@ def main() -> None:
             show_session_cookie,
             measure_completion_time,
             set_completion_time,
+            flamegraph,
         ),
     )
 
