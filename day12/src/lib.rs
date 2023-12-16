@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, mem::swap};
 
 use rayon::prelude::*;
 use rustc_hash::FxHashMap as HashMap;
@@ -43,7 +43,7 @@ fn create_permutations(line: &str) -> usize {
     // Parse the input.
     let (springs, groups) = line.split_once(' ').unwrap();
     let groups: Vec<usize> = groups.split(',').map(|s| s.parse().unwrap()).collect();
-    let springs: Vec<char> = springs.chars().collect();
+    let springs: Vec<u8> = springs.bytes().collect();
 
     // Calculate the suffix sums of the groups, as we'll need them later to prune invalid states.
     let mut groups_suffix_sums: Vec<usize> = groups
@@ -62,45 +62,35 @@ fn create_permutations(line: &str) -> usize {
     states.insert((0, 0), 1);
     let mut new_states = HashMap::default();
 
-    for (&spring, springs_left) in springs.iter().zip((0..springs.len()).rev()) {
+    let mut springs_left = springs.iter().filter(|&&spring| matches!(spring, b'#' | b'?')).count();
+
+    for &spring in springs.iter() {
+        if matches!(spring, b'#' | b'?') {
+            springs_left -= 1;
+        }
+
         // Iterate over the states, advancing them.
         for ((group_idx, group_len), permutations) in states.drain() {
-            match spring {
-                '#' => {
-                    // If we haven't run out of groups and the current group is not full, we can
-                    // advance this state.
-                    if group_idx < groups.len() && group_len < groups[group_idx] {
-                        *new_states.entry((group_idx, group_len + 1)).or_default() += permutations;
-                    }
+            if matches!(spring, b'#' | b'?') {
+                // If we haven't run out of groups and the current group is not full, we can
+                // advance this state.
+                if group_idx < groups.len() && group_len < groups[group_idx] {
+                    *new_states.entry((group_idx, group_len + 1)).or_default() += permutations;
                 }
-                '.' => {
-                    if group_len == 0 {
-                        // We're not in a group, so leave the state as-is.
-                        *new_states.entry((group_idx, group_len)).or_default() += permutations;
-                    } else if group_len == groups[group_idx] {
-                        // The current group has been broken. Advance to the next group.
-                        *new_states.entry((group_idx + 1, 0)).or_default() += permutations;
-                    }
+            }
+            if matches!(spring, b'.' | b'?') {
+                if group_len == 0 {
+                    // We're not in a group, so leave the state as-is.
+                    *new_states.entry((group_idx, group_len)).or_default() += permutations;
+                } else if group_len == groups[group_idx] {
+                    // The current group has been broken. Advance to the next group.
+                    *new_states.entry((group_idx + 1, 0)).or_default() += permutations;
                 }
-                '?' => {
-                    // Process as '#'.
-                    if group_idx < groups.len() && group_len < groups[group_idx] {
-                        *new_states.entry((group_idx, group_len + 1)).or_default() += permutations;
-                    }
-
-                    // Process as '.'.
-                    if group_len == 0 {
-                        *new_states.entry((group_idx, group_len)).or_default() += permutations;
-                    } else if group_len == groups[group_idx] {
-                        *new_states.entry((group_idx + 1, 0)).or_default() += permutations;
-                    }
-                }
-                _ => unreachable!(),
             }
         }
 
         // Swap over the new states, keeping in mind we've already cleared the old states via drain.
-        std::mem::swap(&mut states, &mut new_states);
+        swap(&mut states, &mut new_states);
 
         // Prune the states that are guaranteed to be invalid.
         states.retain(|&(group_idx, group_len), _| springs_left + group_len >= groups_suffix_sums[group_idx]);
