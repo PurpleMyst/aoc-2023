@@ -1,9 +1,10 @@
-use std::{
-    fmt::Display,
-};
+use std::{cmp::max, fmt::Display, mem::swap};
 
 use rayon::prelude::*;
 use rustc_hash::FxHashSet as HashSet;
+
+type Coordinate = u8;
+type Position = (Coordinate, Coordinate);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 enum Cell {
@@ -16,8 +17,9 @@ enum Cell {
 use Cell::*;
 
 impl Cell {
-    fn apply_to(self, pos: (usize, usize), coming_from: Direction, beams: &mut HashSet<((usize, usize), Direction)>) {
+    fn apply_to(self, pos: Position, coming_from: Direction, beams: &mut HashSet<(Position, Direction)>) {
         match (self, coming_from) {
+            // Empty tiles or pointy ends just pass the beam through.
             (Empty, _)
             | (VerticalSplitter, Up)
             | (VerticalSplitter, Down)
@@ -26,6 +28,7 @@ impl Cell {
                 beams.insert((pos, coming_from));
             }
 
+            // The mirrors reflect, obviously.
             (ForwardMirror, Right) | (BackMirror, Left) => {
                 beams.insert((pos, Up));
             }
@@ -42,6 +45,7 @@ impl Cell {
                 beams.insert((pos, Left));
             }
 
+            // The splitters... split!
             (VerticalSplitter, Left) | (VerticalSplitter, Right) => {
                 beams.insert((pos, Up));
                 beams.insert((pos, Down));
@@ -65,7 +69,8 @@ enum Direction {
 use Direction::*;
 
 impl Direction {
-    fn apply_to(self, pos: (usize, usize)) -> Option<(usize, usize)> {
+    /// Move the beam in this direction, returning the new position if we didn't underflow.
+    fn apply_to(self, pos: Position) -> Option<Position> {
         match self {
             Up => Some((pos.0, pos.1.checked_sub(1)?)),
             Down => Some((pos.0, pos.1 + 1)),
@@ -75,34 +80,40 @@ impl Direction {
     }
 }
 
-fn count_visited(visited: &Vec<Vec<bool>>) -> usize {
-    visited
-        .iter()
-        .map(|row| row.iter().filter(|&&x| x).count())
-        .sum::<usize>()
-}
-
-fn do_solve(map: &Vec<Vec<Cell>>, insertion_point: (usize, usize), initial_dir: Direction) -> usize {
+fn do_solve(map: &Vec<Vec<Cell>>, insertion_point: Position, initial_dir: Direction) -> usize {
     let mut beams = HashSet::default();
     let mut new_beams = HashSet::default();
-    let mut visited = vec![vec![false; map[0].len()]; map.len()];
-    let mut seen_beams = HashSet::default();
+    let mut seen_beams = vec![vec![0; map[0].len()]; map.len()];
 
-    map[insertion_point.1][insertion_point.0].apply_to(insertion_point, initial_dir, &mut beams);
+    // Account for the possibility that the insertion point is already some sort of special tile.
+    map[insertion_point.1 as usize][insertion_point.0 as usize].apply_to(insertion_point, initial_dir, &mut beams);
 
-    while seen_beams.insert(beams.iter().copied().collect::<Vec<_>>()) {
+    while !beams.is_empty() {
         for ((x, y), dir) in beams.drain() {
-            visited[y][x] = true;
+            // If there's already been a beam in this spot and moving in this direction, there's no need to recalculate.
+            let pos_seen = &mut seen_beams[y as usize][x as usize];
+            if (*pos_seen) & (1 << dir as u8) != 0 {
+                continue;
+            }
+            *pos_seen |= 1 << dir as u8;
+
+            // Apply the tile's effect and ensure we're still on the map.
             let Some(next_pos) = dir.apply_to((x, y)) else { continue };
-            let Some(next_tile) = map.get(next_pos.1).and_then(|row| row.get(next_pos.0)) else {
+            let Some(next_tile) = map
+                .get(next_pos.1 as usize)
+                .and_then(|row| row.get(next_pos.0 as usize))
+            else {
                 continue;
             };
             next_tile.apply_to(next_pos, dir, &mut new_beams);
         }
-        std::mem::swap(&mut beams, &mut new_beams);
+        swap(&mut beams, &mut new_beams);
     }
 
-    count_visited(&visited)
+    seen_beams
+        .into_iter()
+        .map(|row| row.into_iter().filter(|&x| x != 0).count())
+        .sum()
 }
 
 #[inline]
@@ -123,11 +134,13 @@ pub fn solve() -> (impl Display, impl Display) {
         })
         .collect::<Vec<_>>();
 
+    // Part 1 is simply one iteration of part 2.
     let part1 = do_solve(&map, (0, 0), Right);
 
-    let width = map[0].len();
-    let height = map.len();
-    let part2 = std::cmp::max(
+    // Part 2 works by just... brute-forcing every possible starting position! :)
+    let width = map[0].len() as Coordinate;
+    let height = map.len() as Coordinate;
+    let part2 = max(
         (0..width)
             .into_par_iter()
             .map(|x| do_solve(&map, (x, 0), Down).max(do_solve(&map, (x, height - 1), Up)))
