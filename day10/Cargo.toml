@@ -2,3 +2,7 @@
 name = "day10"
 version = "0.1.0"
 edition = "2021"
+
+[dependencies]
+grid = "0.12.0"
+tap = "1.0.1"

@@ -1,5 +1,8 @@
 use std::fmt::Display;
 
+use ::tap::Pipe as _;
+use grid::Grid;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Pipe {
     NS,
@@ -27,88 +30,89 @@ const S_REPLACEMENT: Pipe = Pipe::EW;
 
 #[inline]
 pub fn solve() -> (impl Display, impl Display) {
-    // Load in the map, replacing our starting position with a pipe. We verify which one is the
-    // correct replacement by visual inspection.
     let mut start_pos = None;
-    let map = include_str!("input.txt")
-        .lines()
+    let input = include_str!("input.txt");
+    let columns = input.lines().next().unwrap().len();
+    let map = input
+        .bytes()
+        .filter(|b| *b != b'\n')
         .enumerate()
-        .map(|(y, row)| {
-            row.chars()
-                .enumerate()
-                .map(|(x, ch)| match ch {
-                    '|' => Some(Pipe::NS),
-                    '-' => Some(Pipe::EW),
-                    'L' => Some(Pipe::NE),
-                    'J' => Some(Pipe::NW),
-                    '7' => Some(Pipe::SW),
-                    'F' => Some(Pipe::SE),
-                    'S' => {
-                        start_pos = Some((x, y));
-                        Some(S_REPLACEMENT)
-                    }
-                    '.' => None,
-                    _ => unreachable!(),
-                })
-                .collect::<Vec<_>>()
+        .map(|(idx, b)| match b {
+            b'|' => Some(Pipe::NS),
+            b'-' => Some(Pipe::EW),
+            b'L' => Some(Pipe::NE),
+            b'J' => Some(Pipe::NW),
+            b'7' => Some(Pipe::SW),
+            b'F' => Some(Pipe::SE),
+            b'S' => {
+                let y = idx / columns;
+                let x = idx % columns;
+                start_pos = Some((y, x));
+                Some(S_REPLACEMENT)
+            }
+            b'.' => None,
+            _ => unreachable!("{b:?}"),
         })
-        .collect::<Vec<_>>();
+        .pipe(|iter| Grid::from_vec(iter.collect(), columns));
 
-    // Simple depth-first search to find points in the main loop.
-    let mut q = vec![(start_pos.unwrap(), 0)];
-    let mut distance_map = vec![vec![usize::MAX; map[0].len()]; map.len()];
-    while let Some((n, d)) = q.pop() {
-        let best = &mut distance_map[n.1][n.0];
-        if *best < d {
-            continue;
-        }
-        *best = d;
+    let start_pos = start_pos.unwrap();
+    let mut pos = start_pos;
+    let mut dir: (isize, isize) = match S_REPLACEMENT {
+        Pipe::EW => (0, 1),
+        _ => unimplemented!(),
+    };
 
-        let pipe = map[n.1][n.0];
-        let neighbors = match pipe.unwrap() {
-            Pipe::NS => [(n.0, n.1 - 1), (n.0, n.1 + 1)],
-            Pipe::EW => [(n.0 + 1, n.1), (n.0 - 1, n.1)],
-            Pipe::NE => [(n.0 + 1, n.1), (n.0, n.1 - 1)],
-            Pipe::NW => [(n.0, n.1 - 1), (n.0 - 1, n.1)],
-            Pipe::SW => [(n.0 - 1, n.1), (n.0, n.1 + 1)],
-            Pipe::SE => [(n.0, n.1 + 1), (n.0 + 1, n.1)],
-        };
-        q.extend_from_slice(neighbors.map(|n| (n, d + 1)).as_slice());
-    }
+    let mut loop_len = 0;
+    let mut area = 0isize;
 
-    // Find the furthest point from the start.
-    let part1 = distance_map
-        .iter()
-        .flat_map(|row| row.iter())
-        .filter(|&&d| d != usize::MAX)
-        .max()
-        .copied()
-        .unwrap();
+    loop {
+        loop_len += 1;
+        area -= dir.0 * pos.1 as isize; // Green's theorem
 
-    // Parity algorithm: Every time we hit a pipe (that's part of the main loop) going up (be it
-    // vertically or diagonally), we flip a boolean that indicates if we're inside or outside the
-    // main loop.
-    let part2 = map
-        .into_iter()
-        .zip(distance_map)
-        .map(|(map_row, dist_row)| {
-            let mut inside = false;
-            let mut counter = 0;
-            for (cell, dist) in map_row.into_iter().zip(dist_row.into_iter()) {
-                let Some(pipe) = cell.filter(|_| dist != usize::MAX) else {
-                    if inside {
-                        counter += 1;
-                    }
-                    continue;
-                };
+        match map[pos].expect("should not leave loop!") {
+            // Straight segments just leave the direction as is
+            Pipe::NS | Pipe::EW => {}
 
-                if matches!(pipe, Pipe::NS | Pipe::SE | Pipe::SW) {
-                    inside = !inside;
+            // Curved segments change the direction
+            Pipe::NE => { // ╚
+                dir = match dir {
+                    (1, 0) => (0, 1),   // down -> right
+                    (0, -1) => (-1, 0), // left -> up
+                    _ => unreachable!(),
                 }
             }
-            counter
-        })
-        .sum::<usize>();
+            Pipe::NW => { // ╝
+                dir = match dir {
+                    (0, 1) => (-1, 0), // right -> up
+                    (1, 0) => (0, -1), // down -> left
+                    _ => unreachable!("{dir:?}"),
+                }
+            }
+            Pipe::SW => { // ╗
+                dir = match dir {
+                    (0, 1) => (1, 0),   // right -> down
+                    (-1, 0) => (0, -1), // up -> left
+                    _ => unreachable!(),
+                }
+            }
+            Pipe::SE => { // ╔
+                dir = match dir {
+                    (-1, 0) => (0, 1), // up -> right
+                    (0, -1) => (1, 0), // right -> down
+                    _ => unreachable!(),
+                }
+            }
+        }
 
+        pos.0 = pos.0.checked_add_signed(dir.0).unwrap();
+        pos.1 = pos.1.checked_add_signed(dir.1).unwrap();
+
+        if pos == start_pos {
+            break;
+        }
+    }
+
+    let part1 = loop_len / 2;
+    let part2 = area.abs() - part1 + 1;
     (part1, part2)
 }
