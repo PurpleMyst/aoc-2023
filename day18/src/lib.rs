@@ -11,44 +11,47 @@ enum Direction {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Instruction {
     direction: Direction,
-    length: i64,
+    steps: i64,
 }
 
 // Solve using Pick's theorem.
 fn do_solve(instructions: &[Instruction]) -> i64 {
+    // Calculate the vertices by following the instructions. Along the way, it's easy to calculate the perimeter.
     let mut x = 0;
     let mut y = 0;
     let mut vertices = vec![(0, 0)];
     vertices.reserve(instructions.len() + 1);
     let mut perimeter = 0;
-    for &Instruction { direction, length } in instructions {
+    for &Instruction { direction, steps } in instructions {
         let destination = match direction {
-            Direction::Up => (x, y + length),
-            Direction::Down => (x, y - length),
-            Direction::Left => (x - length, y),
-            Direction::Right => (x + length, y),
+            Direction::Up => (x, y + steps),
+            Direction::Down => (x, y - steps),
+            Direction::Left => (x - steps, y),
+            Direction::Right => (x + steps, y),
         };
         (x, y) = destination;
         vertices.push(destination);
-        perimeter += length;
+        perimeter += steps;
     }
 
+    // Utilize the shoelace formula to calculate the area, taking the absolute value to avoid depending on the order of
+    // the vertices.
     let area = vertices
         .windows(2)
         .map(|w| {
-            let [(x1, y1), (x2, y2)] = w.try_into().unwrap();
+            let (x1, y1) = w[0];
+            let (x2, y2) = w[1];
             x1 * y2 - x2 * y1
         })
-        .sum::<i64>() / 2;
+        .sum::<i64>().abs() / 2;
 
-    // Area = Interior + Boundary / 2 - 1
-    // => Interior = Area - Boundary / 2 + 1
-    let interior = area - perimeter / 2 + 1;
-
-    // Zero idea why this is needed.
-    let answer = 2 - interior;
-
-    answer
+    // Pick's theorem states that:
+    // Area = InteriorIntegerPoints + BoundaryIntegerPoints / 2 - 1
+    // This means that we can calculate the number of interior integer points by:
+    // InteriorIntegerPoints = Area - BoundaryIntegerPoints / 2 + 1
+    // However, to that we must add the perimeter, as the problem description asks us to count the points on the boundary as well.
+    // Therefore, the final formula is:
+    area + perimeter / 2 + 1
 }
 
 #[inline]
@@ -57,19 +60,19 @@ pub fn solve() -> (impl Display, impl Display) {
         .lines()
         .map(|line| {
             let mut it = line.split(' ');
-            let direction = match it.next().unwrap() {
+            let p1_direction = match it.next().unwrap() {
                 "U" => Direction::Up,
                 "D" => Direction::Down,
                 "L" => Direction::Left,
                 "R" => Direction::Right,
                 _ => unreachable!(),
             };
-            let amount = it.next().unwrap().parse().unwrap();
+            let p1_steps = it.next().unwrap().parse().unwrap();
 
             let color = &it.next().unwrap()[2..8];
-            let (c_amount, c_direction) = color.split_at(color.len() - 1);
-            let c_amount = u32::from_str_radix(c_amount, 16).unwrap();
-            let c_direction = match c_direction {
+            let (p2_steps, p2_direction) = color.split_at(color.len() - 1);
+            let p2_steps = u32::from_str_radix(p2_steps, 16).unwrap();
+            let p2_direction = match p2_direction {
                 "0" => Direction::Right,
                 "1" => Direction::Down,
                 "2" => Direction::Left,
@@ -78,10 +81,10 @@ pub fn solve() -> (impl Display, impl Display) {
             };
 
             (
-                Instruction { direction, length: amount },
+                Instruction { direction: p1_direction, steps: p1_steps },
                 Instruction {
-                    direction: c_direction,
-                    length: c_amount as _,
+                    direction: p2_direction,
+                    steps: p2_steps as _,
                 },
             )
         })
