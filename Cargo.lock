@@ -48,6 +48,7 @@ dependencies = [
  "day15",
  "day16",
  "day17",
+ "day18",
  "iai",
 ]
 
@@ -353,6 +354,10 @@ dependencies = [
  "rayon",
  "rustc-hash",
 ]
+
+[[package]]
+name = "day18"
+version = "0.1.0"
 
 [[package]]
 name = "deprecate-until"
