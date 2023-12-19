@@ -1,6 +1,6 @@
-use std::{collections::HashMap, fmt::Display, str::FromStr};
+use std::fmt::Display;
 
-use indexmap::IndexMap;
+use rustc_hash::FxHashMap as HashMap;
 
 type WorkflowId = &'static str;
 type Value = u64;
@@ -110,7 +110,7 @@ impl Workflow {
     }
 }
 
-fn is_accepted(workflows: &IndexMap<WorkflowId, Workflow>, part: &Part) -> bool {
+fn is_accepted(workflows: &HashMap<WorkflowId, Workflow>, part: &Part) -> bool {
     let mut workflow = workflows.get("in").unwrap();
     loop {
         let rule = workflow.rules.iter().find(|rule| rule.matches(part));
@@ -132,7 +132,7 @@ struct HypotheticalPart {
     max: [Value; 4],
 }
 
-fn do_part2(workflows: &IndexMap<WorkflowId, Workflow>, workflow_id: WorkflowId, mut part: HypotheticalPart) -> Value {
+fn do_part2(workflows: &HashMap<WorkflowId, Workflow>, workflow_id: WorkflowId, mut part: HypotheticalPart) -> Value {
     if workflow_id == ACCEPT {
         return part
             .max
