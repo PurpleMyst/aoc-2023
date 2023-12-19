@@ -2,11 +2,21 @@ use std::fmt::Display;
 
 use rustc_hash::FxHashMap as HashMap;
 
-type WorkflowId = &'static str;
+type WorkflowId = u32;
 type Value = u64;
 
-const ACCEPT: WorkflowId = "A";
-const REJECT: WorkflowId = "R";
+const fn str2id(s: &[u8]) -> WorkflowId {
+    match s.len() {
+        1 => s[0] as WorkflowId,
+        2 => (s[0] as WorkflowId) << 8 | (s[1] as WorkflowId),
+        3 => (s[0] as WorkflowId) << 16 | (s[1] as WorkflowId) << 8 | (s[2] as WorkflowId),
+        _ => unimplemented!(),
+    }
+}
+
+const ACCEPT: WorkflowId = str2id(b"A");
+const REJECT: WorkflowId = str2id(b"R");
+const INITIAL_WORKFLOW: WorkflowId = str2id(b"in");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Property {
@@ -69,10 +79,10 @@ impl Workflow {
     fn parse(s: &'static str) -> (WorkflowId, Self) {
         let (id, rules) = s.strip_suffix('}').unwrap().split_once('{').unwrap();
         let mut rules = rules.split(',');
-        let final_destination = rules.next_back().unwrap().trim();
+        let final_destination = str2id(rules.next_back().unwrap().as_bytes());
         let mut rules: Box<[Rule]> = rules
             .map(|rule| {
-                let (cmp, dest) = rule.split_once(':').unwrap();
+                let (cmp, send_to) = rule.split_once(':').unwrap();
                 let threshold = cmp[2..].parse::<Value>().unwrap();
                 let prop = match cmp.as_bytes()[0] {
                     b'x' => Property::ExtremelyCoolLooking,
@@ -91,17 +101,17 @@ impl Workflow {
                     property: prop,
                     comparison: cmp,
                     threshold,
-                    send_to: dest,
+                    send_to: str2id(send_to.as_bytes()),
                 }
             })
             .collect();
 
-            if rules.iter().all(|rule| rule.send_to == final_destination) {
-                rules = Box::new([]);
-            }
+        if rules.iter().all(|rule| rule.send_to == final_destination) {
+            rules = Box::new([]);
+        }
 
         (
-            id,
+            str2id(id.as_bytes()),
             Self {
                 rules,
                 final_destination,
@@ -111,17 +121,17 @@ impl Workflow {
 }
 
 fn is_accepted(workflows: &HashMap<WorkflowId, Workflow>, part: &Part) -> bool {
-    let mut workflow = workflows.get("in").unwrap();
+    let mut workflow = workflows.get(&INITIAL_WORKFLOW).unwrap();
     loop {
         let rule = workflow.rules.iter().find(|rule| rule.matches(part));
-        let desetination = match rule {
+        let send_to = match rule {
             Some(rule) => rule.send_to,
             None => workflow.final_destination,
         };
-        match desetination {
+        match send_to {
             ACCEPT => return true,
             REJECT => return false,
-            _ => workflow = workflows.get(desetination).unwrap(),
+            _ => workflow = workflows.get(&send_to).unwrap(),
         }
     }
 }
@@ -144,7 +154,7 @@ fn do_part2(workflows: &HashMap<WorkflowId, Workflow>, workflow_id: WorkflowId, 
         return 0;
     }
 
-    let workflow = workflows.get(workflow_id).unwrap();
+    let workflow = workflows.get(&workflow_id).unwrap();
     let mut answer = 0;
 
     for rule in workflow.rules.iter() {
@@ -222,7 +232,7 @@ pub fn solve() -> (impl Display, impl Display) {
 
     let part2 = do_part2(
         &workflows,
-        "in",
+        INITIAL_WORKFLOW,
         HypotheticalPart {
             min: [1; 4],
             max: [4000; 4],
