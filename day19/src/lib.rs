@@ -70,7 +70,7 @@ impl Workflow {
         let (id, rules) = s.strip_suffix('}').unwrap().split_once('{').unwrap();
         let mut rules = rules.split(',');
         let final_destination = rules.next_back().unwrap().trim();
-        let rules = rules
+        let mut rules: Box<[Rule]> = rules
             .map(|rule| {
                 let (cmp, dest) = rule.split_once(':').unwrap();
                 let threshold = cmp[2..].parse::<Value>().unwrap();
@@ -86,6 +86,7 @@ impl Workflow {
                     b'>' => Comparison::GreaterThan,
                     _ => panic!("Invalid comparison operator"),
                 };
+
                 Rule {
                     property: prop,
                     comparison: cmp,
@@ -94,6 +95,11 @@ impl Workflow {
                 }
             })
             .collect();
+
+            if rules.iter().all(|rule| rule.send_to == final_destination) {
+                rules = Box::new([]);
+            }
+
         (
             id,
             Self {
