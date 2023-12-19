@@ -67,6 +67,30 @@ impl Rule {
             Comparison::GreaterThan => val > self.threshold,
         }
     }
+
+    fn parse(rule: &str) -> Self {
+        let (comparison, send_to) = rule.split_once(':').unwrap();
+        let threshold = comparison[2..].parse::<Value>().unwrap();
+        let property = match comparison.as_bytes()[0] {
+            b'x' => Property::ExtremelyCoolLooking,
+            b'm' => Property::Musical,
+            b'a' => Property::Aerodynamic,
+            b's' => Property::Shiny,
+            _ => panic!("Invalid property"),
+        };
+        let comparison = match comparison.as_bytes()[1] {
+            b'<' => Comparison::LessThan,
+            b'>' => Comparison::GreaterThan,
+            _ => panic!("Invalid comparison operator"),
+        };
+
+        Rule {
+            property,
+            comparison,
+            threshold,
+            send_to: str2id(send_to.as_bytes()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -80,31 +104,7 @@ impl Workflow {
         let (id, rules) = s.strip_suffix('}').unwrap().split_once('{').unwrap();
         let mut rules = rules.split(',');
         let final_destination = str2id(rules.next_back().unwrap().as_bytes());
-        let mut rules: Box<[Rule]> = rules
-            .map(|rule| {
-                let (cmp, send_to) = rule.split_once(':').unwrap();
-                let threshold = cmp[2..].parse::<Value>().unwrap();
-                let prop = match cmp.as_bytes()[0] {
-                    b'x' => Property::ExtremelyCoolLooking,
-                    b'm' => Property::Musical,
-                    b'a' => Property::Aerodynamic,
-                    b's' => Property::Shiny,
-                    _ => panic!("Invalid property"),
-                };
-                let cmp = match cmp.as_bytes()[1] {
-                    b'<' => Comparison::LessThan,
-                    b'>' => Comparison::GreaterThan,
-                    _ => panic!("Invalid comparison operator"),
-                };
-
-                Rule {
-                    property: prop,
-                    comparison: cmp,
-                    threshold,
-                    send_to: str2id(send_to.as_bytes()),
-                }
-            })
-            .collect();
+        let mut rules: Box<[Rule]> = rules.map(Rule::parse).collect();
 
         if rules.iter().all(|rule| rule.send_to == final_destination) {
             rules = Box::new([]);
