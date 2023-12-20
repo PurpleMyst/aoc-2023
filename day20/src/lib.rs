@@ -5,25 +5,34 @@ use std::{
 
 use rustc_hash::FxHashMap as HashMap;
 
+type ModuleName = u16;
+
+const fn str2name(s: &[u8]) -> ModuleName {
+    u16::from_be_bytes([s[0], s[1]])
+}
+
+const BROADCASTER: ModuleName = str2name(b"broadcaster");
+const BUTTON: ModuleName = str2name(b"button");
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModuleType {
     Broadcaster,
     FlipFlop(bool),
-    Nand(HashMap<&'static str, bool>),
+    Nand(HashMap<ModuleName, bool>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     pub ty: ModuleType,
-    pub destinations: Box<[&'static str]>,
+    pub destinations: Box<[ModuleName]>,
 }
 
 impl Module {
-    pub fn parse(s: &'static str) -> (&'static str, Self) {
+    pub fn parse(s: &'static str) -> (ModuleName, Self) {
         let (lhs, rhs) = s.split_once(" -> ").unwrap();
-        let destinations: Box<[_]> = rhs.split(", ").collect();
+        let destinations: Box<[_]> = rhs.split(", ").map(|s| str2name(s.as_bytes())).collect();
         let (ty, name) = if lhs == "broadcaster" {
-            (ModuleType::Broadcaster, "broadcaster")
+            (ModuleType::Broadcaster, BROADCASTER)
         } else {
             let (ty_marker, name) = lhs.split_at(1);
             let ty = match ty_marker {
@@ -31,7 +40,7 @@ impl Module {
                 "&" => ModuleType::Nand(Default::default()),
                 _ => panic!("Invalid module type {ty_marker:?}"),
             };
-            (ty, name)
+            (ty, str2name(name.as_bytes()))
         };
         (name, Self { ty, destinations })
     }
@@ -58,12 +67,12 @@ impl Module {
 }
 
 // Part 1 is just straight simulation.
-fn solve_part1(mut modules: HashMap<&'static str, Module>) -> usize {
+fn solve_part1(mut modules: HashMap<ModuleName, Module>) -> usize {
     let mut high_pulses = 0;
     let mut low_pulses = 0;
     for _step in 1..=1000usize {
         let mut queue = VecDeque::new();
-        queue.push_back(("broadcaster", false, "button"));
+        queue.push_back((BROADCASTER, false, BUTTON));
 
         while let Some((to, pulse, from)) = queue.pop_front() {
             match pulse {
@@ -71,19 +80,19 @@ fn solve_part1(mut modules: HashMap<&'static str, Module>) -> usize {
                 false => low_pulses += 1,
             }
 
-            let Some(module) = modules.get_mut(to) else {
+            let Some(module) = modules.get_mut(&to) else {
                 continue;
             };
             match module.ty {
                 ModuleType::Broadcaster => {
-                    for destination in module.destinations.iter() {
-                        queue.push_back((destination, pulse, "broadcaster"));
+                    for &destination in module.destinations.iter() {
+                        queue.push_back((destination, pulse, BROADCASTER));
                     }
                 }
                 ModuleType::FlipFlop(ref mut state) => {
                     if !pulse {
                         *state = !*state;
-                        for destination in module.destinations.iter() {
+                        for &destination in module.destinations.iter() {
                             queue.push_back((destination, *state, to));
                         }
                     }
@@ -92,7 +101,7 @@ fn solve_part1(mut modules: HashMap<&'static str, Module>) -> usize {
                     state.insert(from, pulse);
                     let c_pulse = !state.values().all(|&b| b);
 
-                    for destination in module.destinations.iter() {
+                    for &destination in module.destinations.iter() {
                         queue.push_back((destination, c_pulse, to));
                     }
                 }
@@ -106,8 +115,8 @@ fn solve_part1(mut modules: HashMap<&'static str, Module>) -> usize {
 // Part 2 involves noticing that the graph can be split into four 12-bit counters, each that reset and send a HIGH pulse
 // to an output NAND gate when they reach a certain value. Each counter therefore has a specific cycle length that is,
 // by construction of the input, prime; we can find the answer by multiplying the cycle lengths of each counter.
-fn solve_part2(modules: &HashMap<&'static str, Module>) -> u64 {
-    modules["broadcaster"]
+fn solve_part2(modules: &HashMap<ModuleName, Module>) -> u64 {
+    modules[&BROADCASTER]
         .destinations
         .iter()
         .map(|mut bit| {
@@ -146,16 +155,16 @@ pub fn solve() -> (impl Display, impl Display) {
         .collect::<HashMap<_, _>>();
 
     // Each NAND gate needs to know which inputs are connected to it, so we'll add that information to the graph.
-    let mut nand_inputs = HashMap::<&'static str, Vec<&'static str>>::default();
-    for (name, module) in &modules {
-        for destination in module.destinations.iter() {
-            if modules.get(destination).map_or(false, |m| m.is_nand()) {
+    let mut nand_inputs = HashMap::<ModuleName, Vec<ModuleName>>::default();
+    for (&name, module) in &modules {
+        for &destination in module.destinations.iter() {
+            if modules.get(&destination).map_or(false, |m| m.is_nand()) {
                 nand_inputs.entry(destination).or_default().push(name);
             }
         }
     }
     for (name, inputs) in nand_inputs {
-        let module = modules.get_mut(name).unwrap();
+        let module = modules.get_mut(&name).unwrap();
         if let ModuleType::Nand(ref mut state) = module.ty {
             for input in inputs {
                 state.insert(input, false);
