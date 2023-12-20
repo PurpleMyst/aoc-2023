@@ -1,24 +1,25 @@
-use std::{collections::VecDeque, fmt::Display};
+use std::{
+    collections::VecDeque,
+    fmt::Display
+};
 
-use indexmap::IndexMap as HashMap;
-
-use pathfinding::directed::strongly_connected_components::strongly_connected_components_from;
+use rustc_hash::FxHashMap as HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum ModuleType {
+pub enum ModuleType {
     Broadcaster,
     FlipFlop(bool),
     Nand(HashMap<&'static str, bool>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Module {
-    ty: ModuleType,
-    destinations: Box<[&'static str]>,
+pub struct Module {
+    pub ty: ModuleType,
+    pub destinations: Box<[&'static str]>,
 }
 
 impl Module {
-    fn parse(s: &'static str) -> (&'static str, Self) {
+    pub fn parse(s: &'static str) -> (&'static str, Self) {
         let (lhs, rhs) = s.split_once(" -> ").unwrap();
         let destinations: Box<[_]> = rhs.split(", ").collect();
         let (ty, name) = if lhs == "broadcaster" {
@@ -35,7 +36,7 @@ impl Module {
         (name, Self { ty, destinations })
     }
 
-    fn is_nand(&self) -> bool {
+    pub fn is_nand(&self) -> bool {
         matches!(
             self,
             Self {
@@ -45,7 +46,7 @@ impl Module {
         )
     }
 
-    fn is_flipflop(&self) -> bool {
+    pub fn is_flipflop(&self) -> bool {
         matches!(
             self,
             Self {
@@ -56,13 +57,14 @@ impl Module {
     }
 }
 
-fn do_part1(mut modules: HashMap<&'static str, Module>) -> usize {
-    let mut low_pulses = 0usize;
-    let mut high_pulses = 0usize;
-
-    for _ in 1..=1000 {
+// Part 1 is just straight simulation.
+fn solve_part1(mut modules: HashMap<&'static str, Module>) -> usize {
+    let mut high_pulses = 0;
+    let mut low_pulses = 0;
+    for _step in 1..=1000usize {
         let mut queue = VecDeque::new();
         queue.push_back(("broadcaster", false, "button"));
+
         while let Some((to, pulse, from)) = queue.pop_front() {
             match pulse {
                 true => high_pulses += 1,
@@ -101,48 +103,39 @@ fn do_part1(mut modules: HashMap<&'static str, Module>) -> usize {
     high_pulses * low_pulses
 }
 
-fn write_dot(name: &str, modules: &HashMap<&'static str, Module>, groups: &[Vec<&'static str>]) {
-    use std::io::prelude::*;
-    let mut modules_dot = std::fs::File::create(name).unwrap();
-    writeln!(modules_dot, "digraph {{").unwrap();
+// Part 2 involves noticing that the graph can be split into four 12-bit counters, each that reset and send a HIGH pulse
+// to an output NAND gate when they reach a certain value. Each counter therefore has a specific cycle length that is,
+// by construction of the input, prime; we can find the answer by multiplying the cycle lengths of each counter.
+fn solve_part2(modules: &HashMap<&'static str, Module>) -> u64 {
+    modules["broadcaster"]
+        .destinations
+        .iter()
+        .map(|mut bit| {
+            let mut period = 0u64;
 
-    for module_names in groups {
-        writeln!(modules_dot, "subgraph cluster_{} {{", module_names[0]).unwrap();
+            // Walk the graph until we reach the leaf flipflop, setting a bit on the period for each flipflop that must
+            // be ON for the counter to reset.
+            loop {
+                let children = &*modules[bit].destinations;
 
-        for name in module_names {
-            let Some(module) = modules.get(name) else {
-                continue;
-            };
-            let (shape, color) = match module.ty {
-                ModuleType::Broadcaster => ("box", "black"),
-                ModuleType::FlipFlop(state) => ("ellipse", if state { "green" } else { "red" }),
-                ModuleType::Nand(ref state) => ("hexagon", if !state.values().all(|&b| b) { "green" } else { "red" }),
-            };
-            writeln!(modules_dot, "{name} [shape={shape} color={color}]",).unwrap();
+                let should_count = children.iter().any(|c| modules[c].is_nand());
+                if should_count {
+                    period |= 1;
+                }
 
-            for destination in module.destinations.iter() {
-                writeln!(
-                    modules_dot,
-                    "{name} -> {destination} [color={}]",
-                    match modules.get(destination) {
-                        Some(Module {
-                            ty: ModuleType::Nand(..),
-                            ..
-                        }) => "red",
-                        Some(Module {
-                            ty: ModuleType::FlipFlop(..),
-                            ..
-                        }) => "blue",
-                        None => "green",
-                        _ => "black",
-                    }
-                )
-                .unwrap();
+                if let Some(next) = children.iter().find(|&c| modules[c].is_flipflop()) {
+                    period <<= 1;
+                    bit = next;
+                } else {
+                    break;
+                }
             }
-        }
-        writeln!(modules_dot, "}}").unwrap();
-    }
-    writeln!(modules_dot, "}}").unwrap();
+
+            // Due to how we iterated, we'll actually have the bits in reverse order, so we need to reverse them as a
+            // 12-bit integer.
+            period.reverse_bits() >> period.leading_zeros()
+        })
+        .product::<u64>()
 }
 
 #[inline]
@@ -151,49 +144,16 @@ pub fn solve() -> (impl Display, impl Display) {
         .lines()
         .map(Module::parse)
         .collect::<HashMap<_, _>>();
-    let mut nand_inputs = HashMap::<&'static str, Vec<&'static str>>::new();
+
+    // Each NAND gate needs to know which inputs are connected to it, so we'll add that information to the graph.
+    let mut nand_inputs = HashMap::<&'static str, Vec<&'static str>>::default();
     for (name, module) in &modules {
         for destination in module.destinations.iter() {
-            if matches!(
-                modules.get(destination),
-                Some(Module {
-                    ty: ModuleType::Nand(..),
-                    ..
-                })
-            ) {
+            if modules.get(destination).map_or(false, |m| m.is_nand()) {
                 nand_inputs.entry(destination).or_default().push(name);
             }
         }
     }
-
-    // each destination of the broadcaster defines one cycle
-    let foo: u64 = modules["broadcaster"]
-        .destinations
-        .iter()
-        .map(|mut bit| {
-            let mut period = 0;
-            let mut value = 1;
-
-            loop {
-                let children = &modules[bit].destinations;
-
-                let should_count = children.iter().any(|c| modules[c].is_nand());
-                if should_count {
-                    period += value;
-                }
-
-                if let Some(next) = children.iter().find(|&c| modules[c].is_flipflop()) {
-                    value *= 2;
-                    bit = next;
-                } else {
-                    break;
-                }
-            }
-
-            period
-        })
-        .product();
-
     for (name, inputs) in nand_inputs {
         let module = modules.get_mut(name).unwrap();
         if let ModuleType::Nand(ref mut state) = module.ty {
@@ -203,5 +163,7 @@ pub fn solve() -> (impl Display, impl Display) {
         }
     }
 
-    (do_part1(modules), foo)
+    let part2 = solve_part2(&modules);
+
+    (solve_part1(modules), part2)
 }
