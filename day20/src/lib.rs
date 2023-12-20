@@ -1,7 +1,6 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    fmt::Display,
-};
+use std::{collections::VecDeque, fmt::Display};
+
+use indexmap::IndexMap as HashMap;
 
 use pathfinding::directed::strongly_connected_components::strongly_connected_components_from;
 
@@ -34,6 +33,26 @@ impl Module {
             (ty, name)
         };
         (name, Self { ty, destinations })
+    }
+
+    fn is_nand(&self) -> bool {
+        matches!(
+            self,
+            Self {
+                ty: ModuleType::Nand(..),
+                ..
+            }
+        )
+    }
+
+    fn is_flipflop(&self) -> bool {
+        matches!(
+            self,
+            Self {
+                ty: ModuleType::FlipFlop(..),
+                ..
+            }
+        )
     }
 }
 
@@ -82,9 +101,9 @@ fn do_part1(mut modules: HashMap<&'static str, Module>) -> usize {
     high_pulses * low_pulses
 }
 
-fn write_dot(modules: &HashMap<&'static str, Module>, groups: &[Vec<&'static str>]) {
+fn write_dot(name: &str, modules: &HashMap<&'static str, Module>, groups: &[Vec<&'static str>]) {
     use std::io::prelude::*;
-    let mut modules_dot = std::fs::File::create("modules.dot").unwrap();
+    let mut modules_dot = std::fs::File::create(name).unwrap();
     writeln!(modules_dot, "digraph {{").unwrap();
 
     for module_names in groups {
@@ -94,11 +113,12 @@ fn write_dot(modules: &HashMap<&'static str, Module>, groups: &[Vec<&'static str
             let Some(module) = modules.get(name) else {
                 continue;
             };
-            match module.ty {
-                ModuleType::Broadcaster => writeln!(modules_dot, "{name} [shape=box]").unwrap(),
-                ModuleType::FlipFlop(_) => writeln!(modules_dot, "{name} [shape=ellipse]").unwrap(),
-                ModuleType::Nand(_) => writeln!(modules_dot, "{name} [shape=hexagon]").unwrap(),
-            }
+            let (shape, color) = match module.ty {
+                ModuleType::Broadcaster => ("box", "black"),
+                ModuleType::FlipFlop(state) => ("ellipse", if state { "green" } else { "red" }),
+                ModuleType::Nand(ref state) => ("hexagon", if !state.values().all(|&b| b) { "green" } else { "red" }),
+            };
+            writeln!(modules_dot, "{name} [shape={shape} color={color}]",).unwrap();
 
             for destination in module.destinations.iter() {
                 writeln!(
@@ -131,7 +151,7 @@ pub fn solve() -> (impl Display, impl Display) {
         .lines()
         .map(Module::parse)
         .collect::<HashMap<_, _>>();
-    let mut con_inputs = HashMap::<&'static str, Vec<&'static str>>::new();
+    let mut nand_inputs = HashMap::<&'static str, Vec<&'static str>>::new();
     for (name, module) in &modules {
         for destination in module.destinations.iter() {
             if matches!(
@@ -141,12 +161,40 @@ pub fn solve() -> (impl Display, impl Display) {
                     ..
                 })
             ) {
-                con_inputs.entry(destination).or_default().push(name);
+                nand_inputs.entry(destination).or_default().push(name);
             }
         }
     }
 
-    for (name, inputs) in con_inputs {
+    // each destination of the broadcaster defines one cycle
+    let foo: u64 = modules["broadcaster"]
+        .destinations
+        .iter()
+        .map(|mut bit| {
+            let mut period = 0;
+            let mut value = 1;
+
+            loop {
+                let children = &modules[bit].destinations;
+
+                let should_count = children.iter().any(|c| modules[c].is_nand());
+                if should_count {
+                    period += value;
+                }
+
+                if let Some(next) = children.iter().find(|&c| modules[c].is_flipflop()) {
+                    value *= 2;
+                    bit = next;
+                } else {
+                    break;
+                }
+            }
+
+            period
+        })
+        .product();
+
+    for (name, inputs) in nand_inputs {
         let module = modules.get_mut(name).unwrap();
         if let ModuleType::Nand(ref mut state) = module.ty {
             for input in inputs {
@@ -155,12 +203,5 @@ pub fn solve() -> (impl Display, impl Display) {
         }
     }
 
-    let groups = strongly_connected_components_from(&"broadcaster", |s| {
-        modules
-            .get(s)
-            .map_or(vec![], |m| m.destinations.iter().copied().collect::<Vec<_>>())
-    });
-    write_dot(&modules, &groups);
-
-    (do_part1(modules.clone()), "TODO")
+    (do_part1(modules), foo)
 }
