@@ -1,12 +1,12 @@
 use std::fmt::Display;
 
-use rustc_hash::FxHashMap as HashMap;
 use rayon::prelude::*;
+use rustc_hash::FxHashMap as HashMap;
 
 type Node = u32;
 type Map = HashMap<Node, Branch>;
 
-const fn convert_id(s: &str) -> Node{
+const fn convert_id(s: &str) -> Node {
     let b = s.as_bytes();
     Node::from_be_bytes([0, b[0], b[1], b[2]])
 }
@@ -122,7 +122,13 @@ pub fn solve() -> (impl Display, impl Display) {
     for line in input {
         let (node, branches) = line.split_once(" = ").unwrap();
         let (left, right) = branches.trim_matches(&['(', ')'][..]).split_once(", ").unwrap();
-        map.insert(convert_id(node), Branch { left: convert_id(left), right: convert_id(right) });
+        map.insert(
+            convert_id(node),
+            Branch {
+                left: convert_id(left),
+                right: convert_id(right),
+            },
+        );
     }
 
     rayon::join(

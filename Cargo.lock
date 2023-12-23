@@ -413,7 +413,7 @@ dependencies = [
 name = "day10"
 version = "0.1.0"
 dependencies = [
- "grid 0.12.0",
+ "grid",
  "tap",
 ]
 
@@ -452,7 +452,7 @@ dependencies = [
 name = "day16"
 version = "0.1.0"
 dependencies = [
- "grid 0.12.0",
+ "grid",
  "rayon",
 ]
 
@@ -488,7 +488,7 @@ version = "0.1.0"
 dependencies = [
  "bucket_queue",
  "criterion 0.5.1",
- "grid 0.13.0",
+ "hibitset",
  "rustc-hash",
 ]
 
@@ -537,12 +537,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1584ff6141ecb0340eeb8be523d027e3e1fe92ae34d9380a98ea991d65c564cc"
 
 [[package]]
-name = "grid"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d196ffc1627db18a531359249b2bf8416178d84b729f3cebeb278f285fb9b58c"
-
-[[package]]
 name = "half"
 version = "1.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -568,6 +562,15 @@ name = "hermit-abi"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d77f7ec81a6d05a3abb01ab6eb7590f6083d08449fe5a1c8b1e620283546ccb7"
+
+[[package]]
+name = "hibitset"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3ede5cfa60c958e60330d65163adbc4211e15a2653ad80eb0cce878de120121"
+dependencies = [
+ "rayon",
+]
 
 [[package]]
 name = "iai"

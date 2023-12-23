@@ -74,28 +74,32 @@ pub fn solve() -> (impl Display, impl Display) {
             Pipe::NS | Pipe::EW => {}
 
             // Curved segments change the direction
-            Pipe::NE => { // ╚
+            Pipe::NE => {
+                // ╚
                 dir = match dir {
                     (1, 0) => (0, 1),   // down -> right
                     (0, -1) => (-1, 0), // left -> up
                     _ => unreachable!(),
                 }
             }
-            Pipe::NW => { // ╝
+            Pipe::NW => {
+                // ╝
                 dir = match dir {
                     (0, 1) => (-1, 0), // right -> up
                     (1, 0) => (0, -1), // down -> left
                     _ => unreachable!("{dir:?}"),
                 }
             }
-            Pipe::SW => { // ╗
+            Pipe::SW => {
+                // ╗
                 dir = match dir {
                     (0, 1) => (1, 0),   // right -> down
                     (-1, 0) => (0, -1), // up -> left
                     _ => unreachable!(),
                 }
             }
-            Pipe::SE => { // ╔
+            Pipe::SE => {
+                // ╔
                 dir = match dir {
                     (-1, 0) => (0, 1), // up -> right
                     (0, -1) => (1, 0), // right -> down

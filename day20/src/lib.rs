@@ -1,7 +1,4 @@
-use std::{
-    collections::VecDeque,
-    fmt::Display
-};
+use std::{collections::VecDeque, fmt::Display};
 
 use rustc_hash::FxHashMap as HashMap;
 

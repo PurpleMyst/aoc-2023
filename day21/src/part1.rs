@@ -1,9 +1,10 @@
 use ::bucket_queue::*;
+use hibitset::BitSet;
 use rustc_hash::FxHashSet as HashSet;
 
 pub(crate) const TOTAL_STEPS: usize = 64;
 
-pub(crate) fn solve(map: &grid::Grid<bool>, start_pos: (usize, usize), total_steps: usize) -> usize {
+pub(crate) fn solve(map: &BitSet, side: usize, start_pos: (usize, usize), total_steps: usize) -> usize {
     let mut q = BucketQueue::<Vec<_>>::new();
     q.push(start_pos, total_steps);
     let mut reachable = 0;
@@ -33,7 +34,8 @@ pub(crate) fn solve(map: &grid::Grid<bool>, start_pos: (usize, usize), total_ste
         neighbors
             .into_iter()
             .filter_map(|(x, y)| x.zip(y))
-            .filter(|&(x, y)| !map.get(y, x).copied().unwrap_or(true))
+            .filter(|&(x, y)| x < side && y < side)
+            .filter(|&(x, y)| !map.contains((y * side + x) as u32))
             .for_each(|pos| q.push(pos, remaining_steps - 1))
     }
 

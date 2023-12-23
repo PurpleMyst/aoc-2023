@@ -43,7 +43,9 @@ fn do_solve(instructions: &[Instruction]) -> i64 {
             let (x2, y2) = w[1];
             x1 * y2 - x2 * y1
         })
-        .sum::<i64>().abs() / 2;
+        .sum::<i64>()
+        .abs()
+        / 2;
 
     // Pick's theorem states that:
     // Area = InteriorIntegerPoints + BoundaryIntegerPoints / 2 - 1
@@ -81,7 +83,10 @@ pub fn solve() -> (impl Display, impl Display) {
             };
 
             (
-                Instruction { direction: p1_direction, steps: p1_steps },
+                Instruction {
+                    direction: p1_direction,
+                    steps: p1_steps,
+                },
                 Instruction {
                     direction: p2_direction,
                     steps: p2_steps as _,
