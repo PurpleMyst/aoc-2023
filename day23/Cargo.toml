@@ -1,0 +1,11 @@
+[package]
+name = "day23"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+grid = "0.13.0"
+indicatif = "0.17.7"
+petgraph = "0.6.4"
