@@ -13,11 +13,12 @@ macro_rules! doit {
             name = benches;
 
             config = Criterion::default()
-                .significance_level(0.1)
-                .sample_size(500)
-                .measurement_time(Duration::from_secs(15))
-                .warm_up_time(Duration::from_secs(5))
-                .noise_threshold(0.05);
+                // .significance_level(0.1)
+                // .sample_size(500)
+                // .measurement_time(Duration::from_secs(15))
+                // .warm_up_time(Duration::from_secs(5))
+                // .noise_threshold(0.05)
+            ;
 
             targets = aoc_benchmark
         }
