@@ -64,6 +64,7 @@ dependencies = [
  "day19",
  "day20",
  "day21",
+ "day22",
  "iai",
 ]
 
@@ -491,6 +492,10 @@ dependencies = [
  "hibitset",
  "rustc-hash",
 ]
+
+[[package]]
+name = "day22"
+version = "0.1.0"
 
 [[package]]
 name = "either"
