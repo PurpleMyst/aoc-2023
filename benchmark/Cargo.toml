@@ -28,6 +28,7 @@ day20 = { version = "0.1.0", path = "../day20" }
 day21 = { version = "0.1.0", path = "../day21" }
 day22 = { version = "0.1.0", path = "../day22" }
 day23 = { version = "0.1.0", path = "../day23" }
+day24 = { version = "0.1.0", path = "../day24" }
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }

@@ -362,7 +362,7 @@ def flamegraph(day: str, *, remote = "linode") -> None:
     startfile("flamegraph.svg")
 
 def main() -> None:
-    environ["RUST_BACKTRACE"] = "1"
+    # environ["RUST_BACKTRACE"] = "1"
     environ["RUSTFLAGS"] = "-C target-cpu=native"
     dispatch_commands(
         (
