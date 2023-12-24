@@ -1,18 +1,18 @@
 use std::fmt::{Debug, Display};
 
-use grid::Grid;
-use hibitset::{BitSet, BitSetLike};
-use itertools::Itertools;
-use petgraph::prelude::*;
+use hi_sparse_bitset::prelude::*;
 use rayon::prelude::*;
 
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashSet as HashSet;
+
+type BitSet = hi_sparse_bitset::BitSet<hi_sparse_bitset::config::_64bit>;
+type SupportTree = Vec<Vec<usize>>;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-struct Pos {
-    x: u64,
-    y: u64,
-    z: u64,
+pub struct Pos {
+    pub x: u64,
+    pub y: u64,
+    pub z: u64,
 }
 
 impl Debug for Pos {
@@ -37,10 +37,10 @@ impl Pos {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-struct Brick {
-    id: usize,
-    start: Pos,
-    end: Pos,
+pub struct Brick {
+    pub id: usize,
+    pub start: Pos,
+    pub end: Pos,
 }
 
 impl Debug for Brick {
@@ -50,7 +50,7 @@ impl Debug for Brick {
 }
 
 impl Brick {
-    fn parse(id: usize, s: &str) -> Self {
+    pub fn parse(id: usize, s: &str) -> Self {
         let (start, end) = s.split_once('~').unwrap();
         let start = Pos::parse(start);
         let end = Pos::parse(end);
@@ -70,30 +70,27 @@ pub fn solve() -> (impl Display, impl Display) {
         .zip(0..)
         .map(|(line, id)| Brick::parse(id, line))
         .collect::<Vec<_>>();
+    bricks.sort_unstable_by_key(|brick| (brick.start.z, brick.end.z));
 
     // Let the bricks hit the floor.
-    loop {
-        let mut fallen = false;
-        simulate_step(&mut bricks, |_| fallen = true);
-        if !fallen {
-            break;
-        }
-    }
+    while simulate_step(&mut bricks) {}
 
     let supporters = get_support_tree(&bricks);
 
+    bricks.sort_unstable_by_key(|brick| brick.id);
+
     let mut sole_supporters = HashSet::default();
-    for (_brick, supported_by) in &supporters {
+    for supported_by in &supporters {
         if let [sole_supporter] = supported_by.as_slice() {
             sole_supporters.insert(*sole_supporter);
         }
     }
     let p1 = bricks.len() - sole_supporters.len();
 
-    let mut supportees = HashMap::default();
-    for (&supportee, supported_by) in &supporters {
+    let mut supportees = vec![Vec::new(); bricks.len()];
+    for (&supportee, supported_by) in bricks.iter().zip(supporters.iter()) {
         for &supporter in supported_by {
-            supportees.entry(supporter).or_insert_with(Vec::new).push(supportee);
+            supportees[supporter].push(supportee.id);
         }
     }
 
@@ -101,19 +98,14 @@ pub fn solve() -> (impl Display, impl Display) {
         .into_par_iter()
         .map(|brick| {
             let mut falling = BitSet::new();
-            falling.add(brick.id as u32);
+            falling.insert(brick);
 
             let mut q = vec![brick];
             while let Some(brick) = q.pop() {
-                let Some(children) = supportees.get(&brick) else {
-                    continue;
-                };
-                for child in children {
-                    if supporters[child]
-                        .iter()
-                        .all(|support| falling.contains(support.id as u32))
-                    {
-                        falling.add(child.id as u32);
+                let children = &supportees[brick];
+                for &child in children {
+                    if supporters[child].iter().all(|&support| falling.contains(support)) {
+                        falling.insert(child);
                         q.push(child);
                     }
                 }
@@ -130,37 +122,32 @@ fn intersects_xy(a: &Brick, b: &Brick) -> bool {
     a.start.x <= b.end.x && a.end.x >= b.start.x && a.start.y <= b.end.y && a.end.y >= b.start.y
 }
 
-type SupportTree<'a> = HashMap<&'a Brick, Vec<&'a Brick>>;
-
 fn get_support_tree(bricks: &[Brick]) -> SupportTree {
-    // Sort bricks by their bottom. Maybe they're already sorted.
+    let mut tree = vec![Vec::new(); bricks.len()];
+    (0..bricks.len()).for_each(|idx| {
+        let brick = &bricks[idx];
 
-    (0..bricks.len())
-        .map(|idx| {
-            let brick = &bricks[idx];
+        if brick.start.z == 0 {
+            return;
+        }
 
-            if brick.start.z == 0 {
-                return (brick, vec![]);
-            }
+        let target_z = brick.start.z - 1;
 
-            let target_z = brick.start.z - 1;
-
-            (
-                brick,
-                bricks
-                    .iter()
-                    .take(idx)
-                    .filter(|support| support.end.z == target_z)
-                    .filter(|support| intersects_xy(brick, support))
-                    .collect(),
-            )
-        })
-        .collect()
+        tree[brick.id] = bricks
+            .iter()
+            .take(idx)
+            .filter(|support| support.end.z == target_z)
+            .filter(|support| intersects_xy(brick, support))
+            .map(|support| support.id)
+            .collect();
+    });
+    tree
 }
 
-fn simulate_step(bricks: &mut [Brick], mut mark_fallen: impl FnMut(&Brick)) {
-    // Sort bricks by their bottom.
-    bricks.sort_by_key(|brick| brick.start.z);
+pub fn simulate_step(bricks: &mut [Brick]) -> bool {
+    let mut fallen = false;
+
+    let mut two_before = 0;
 
     for idx in 0..bricks.len() {
         let brick = &bricks[idx];
@@ -170,9 +157,13 @@ fn simulate_step(bricks: &mut [Brick], mut mark_fallen: impl FnMut(&Brick)) {
         }
 
         let target_z = brick.start.z - 1;
+        if target_z > 2 + bricks[two_before].start.z {
+            two_before = idx - 1;
+        }
 
         let has_support = bricks
             .iter()
+            .skip(two_before)
             .take(idx)
             .filter(|support| support.end.z == target_z)
             .any(|support| intersects_xy(brick, support));
@@ -181,7 +172,9 @@ fn simulate_step(bricks: &mut [Brick], mut mark_fallen: impl FnMut(&Brick)) {
             let brick = &mut bricks[idx];
             brick.start.z -= 1;
             brick.end.z -= 1;
-            mark_fallen(brick);
+            fallen = true;
         }
     }
+
+    fallen
 }

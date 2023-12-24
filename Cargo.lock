@@ -576,8 +576,10 @@ dependencies = [
 name = "day22"
 version = "0.1.0"
 dependencies = [
+ "criterion 0.5.1",
  "fixedbitset",
  "grid 0.13.0",
+ "hi_sparse_bitset",
  "hibitset",
  "itertools 0.12.0",
  "petgraph",
@@ -699,6 +701,16 @@ name = "hermit-abi"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d77f7ec81a6d05a3abb01ab6eb7590f6083d08449fe5a1c8b1e620283546ccb7"
+
+[[package]]
+name = "hi_sparse_bitset"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05d6eacc15e99d47897f7ea74c3c7a5a9ddf9051b616433d377ef686226a3b42"
+dependencies = [
+ "num-traits",
+ "wide",
+]
 
 [[package]]
 name = "hibitset"
