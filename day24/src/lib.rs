@@ -38,12 +38,12 @@ impl Hailstone {
         (q1, m1)
     }
 
-    fn intersection_xy(&self, other: &Self) -> Option<(f64, f64)> {
+    fn intersection_xy(&self, other: &Self) -> (f64, f64) {
         let (q1, m1) = self.trajectory();
         let (q2, m2) = other.trajectory();
         let x = (q2 - q1) / (m1 - m2);
         let y = m1 * x + q1;
-        Some((x, y))
+        (x, y)
     }
 }
 
@@ -60,15 +60,13 @@ pub fn solve() -> (impl Display, impl Display) {
     let mut part1 = 0;
     for (i, h1) in hailstones.iter().enumerate() {
         for h2 in hailstones.iter().skip(i + 1) {
-            if let Some((x, y)) = h1.intersection_xy(h2) {
-                if h1.time_for(0, x) < 0. || h2.time_for(0, x) < 0. || h1.time_for(1, y) < 0. || h2.time_for(1, y) < 0.
-                {
-                    continue;
-                }
+            let (x, y) = h1.intersection_xy(h2);
+            if h1.time_for(0, x) < 0. || h2.time_for(0, x) < 0. || h1.time_for(1, y) < 0. || h2.time_for(1, y) < 0. {
+                continue;
+            }
 
-                if in_test_area(x) && in_test_area(y) {
-                    part1 += 1;
-                }
+            if in_test_area(x) && in_test_area(y) {
+                part1 += 1;
             }
         }
     }
