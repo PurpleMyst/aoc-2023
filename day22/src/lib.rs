@@ -1,7 +1,12 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::{Debug, Display},
-};
+use std::fmt::{Debug, Display};
+
+use grid::Grid;
+use hibitset::{BitSet, BitSetLike};
+use itertools::Itertools;
+use petgraph::prelude::*;
+use rayon::prelude::*;
+
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 struct Pos {
@@ -38,6 +43,12 @@ struct Brick {
     end: Pos,
 }
 
+impl Debug for Brick {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<brick #{}: {:?}..={:?}>", self.id, self.start, self.end)
+    }
+}
+
 impl Brick {
     fn parse(id: usize, s: &str) -> Self {
         let (start, end) = s.split_once('~').unwrap();
@@ -60,6 +71,7 @@ pub fn solve() -> (impl Display, impl Display) {
         .map(|(line, id)| Brick::parse(id, line))
         .collect::<Vec<_>>();
 
+    // Let the bricks hit the floor.
     loop {
         let mut fallen = false;
         simulate_step(&mut bricks, |_| fallen = true);
@@ -68,82 +80,103 @@ pub fn solve() -> (impl Display, impl Display) {
         }
     }
 
-    let mut supports = HashMap::new();
-    for idx in 0..bricks.len() {
-        let brick = &bricks[idx];
-        if brick.start.z == 0 {
-            continue;
-        }
-        let target_z = brick.start.z - 1;
+    let supporters = get_support_tree(&bricks);
 
-        let bricks = &bricks;
-        let supported_by = (brick.start.x..=brick.end.x).flat_map(|x| {
-            (brick.start.y..=brick.end.y).flat_map(move |y| {
-                bricks
-                    .iter()
-                    .copied()
-                    .filter(move |support| support.end.z == target_z)
-                    .filter(move |support| {
-                        support.start.x <= x && support.end.x >= x && support.start.y <= y && support.end.y >= y
-                    })
-            })
-        });
-        supports.insert(brick, supported_by.collect::<Vec<_>>());
+    let mut sole_supporters = HashSet::default();
+    for (_brick, supported_by) in &supporters {
+        if let [sole_supporter] = supported_by.as_slice() {
+            sole_supporters.insert(*sole_supporter);
+        }
+    }
+    let p1 = bricks.len() - sole_supporters.len();
+
+    let mut supportees = HashMap::default();
+    for (&supportee, supported_by) in &supporters {
+        for &supporter in supported_by {
+            supportees.entry(supporter).or_insert_with(Vec::new).push(supportee);
+        }
     }
 
-    let mut p1 = 0;
-    let mut p2 = 0;
+    let p2 = sole_supporters
+        .into_par_iter()
+        .map(|brick| {
+            let mut falling = BitSet::new();
+            falling.add(brick.id as u32);
 
-    bricks
-        .iter()
-        .enumerate()
-        .map(|(idx, _)| {
-            let mut hypot_bricks = bricks.clone();
-            hypot_bricks.remove(idx);
-
-            let mut fallen_as_a_result = HashSet::new();
-
-            loop {
-                let prev = fallen_as_a_result.len();
-                simulate_step(&mut hypot_bricks, |brick| {
-                    fallen_as_a_result.insert(brick.id);
-                });
-                if fallen_as_a_result.len() == prev {
-                    break;
+            let mut q = vec![brick];
+            while let Some(brick) = q.pop() {
+                let Some(children) = supportees.get(&brick) else {
+                    continue;
+                };
+                for child in children {
+                    if supporters[child]
+                        .iter()
+                        .all(|support| falling.contains(support.id as u32))
+                    {
+                        falling.add(child.id as u32);
+                        q.push(child);
+                    }
                 }
             }
 
-            fallen_as_a_result.len()
+            falling.iter().count() - 1
         })
-        .for_each(|fall_count| {
-            if fall_count == 0 {
-                p1 += 1;
-            } else {
-                p2 += fall_count;
-            }
-        });
+        .sum::<usize>();
 
     (p1, p2)
 }
 
-fn simulate_step(bricks: &mut Vec<Brick>, mut mark_fallen: impl FnMut(&Brick)) {
+fn intersects_xy(a: &Brick, b: &Brick) -> bool {
+    a.start.x <= b.end.x && a.end.x >= b.start.x && a.start.y <= b.end.y && a.end.y >= b.start.y
+}
+
+type SupportTree<'a> = HashMap<&'a Brick, Vec<&'a Brick>>;
+
+fn get_support_tree(bricks: &[Brick]) -> SupportTree {
+    // Sort bricks by their bottom. Maybe they're already sorted.
+
+    (0..bricks.len())
+        .map(|idx| {
+            let brick = &bricks[idx];
+
+            if brick.start.z == 0 {
+                return (brick, vec![]);
+            }
+
+            let target_z = brick.start.z - 1;
+
+            (
+                brick,
+                bricks
+                    .iter()
+                    .take(idx)
+                    .filter(|support| support.end.z == target_z)
+                    .filter(|support| intersects_xy(brick, support))
+                    .collect(),
+            )
+        })
+        .collect()
+}
+
+fn simulate_step(bricks: &mut [Brick], mut mark_fallen: impl FnMut(&Brick)) {
+    // Sort bricks by their bottom.
+    bricks.sort_by_key(|brick| brick.start.z);
+
     for idx in 0..bricks.len() {
         let brick = &bricks[idx];
+
         if brick.start.z == 0 {
             continue;
         }
+
         let target_z = brick.start.z - 1;
 
-        let has_support = (brick.start.x..=brick.end.x).any(|x| {
-            (brick.start.y..=brick.end.y).any(|y| {
-                bricks
-                    .iter()
-                    .filter(|support| support.end.z == target_z)
-                    .any(|support| {
-                        support.start.x <= x && support.end.x >= x && support.start.y <= y && support.end.y >= y
-                    })
-            })
-        });
+        let has_support = bricks
+            .iter()
+            .take(idx)
+            .filter(|support| support.end.z == target_z)
+            .any(|support| intersects_xy(brick, support));
+
         if !has_support {
             let brick = &mut bricks[idx];
             brick.start.z -= 1;
