@@ -51,8 +51,8 @@ fn do_solve(instructions: &[Instruction]) -> i64 {
     // Area = InteriorIntegerPoints + BoundaryIntegerPoints / 2 - 1
     // This means that we can calculate the number of interior integer points by:
     // InteriorIntegerPoints = Area - BoundaryIntegerPoints / 2 + 1
-    // However, to that we must add the perimeter, as the problem description asks us to count the points on the boundary as well.
-    // Therefore, the final formula is:
+    // However, to that we must add the perimeter, as the problem description asks us to count the points on the
+    // boundary as well. Therefore, the final formula is:
     area + perimeter / 2 + 1
 }
 

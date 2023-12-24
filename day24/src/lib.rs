@@ -87,18 +87,18 @@ pub fn solve() -> (impl Display, impl Display) {
 
     for (i, h) in hailstones.into_iter().enumerate().take(3) {
         let t_n = Real::new_const(&ctx, format!("t_{}", 1 + i).as_str());
-        solver.assert(
-            &(&rx + &wx * &t_n)
-                ._eq(&(Real::from_int(&Int::from_i64(&ctx, h.position[0] as i64)) + Real::from_int(&Int::from_i64(&ctx, h.velocity[0] as i64)) * &t_n)),
-        );
-        solver.assert(
-            &(&ry + &wy * &t_n)
-                ._eq(&(Real::from_int(&Int::from_i64(&ctx, h.position[1] as i64)) + Real::from_int(&Int::from_i64(&ctx, h.velocity[1] as i64)) * &t_n)),
-        );
-        solver.assert(
-            &(&rz + &wz * &t_n)
-                ._eq(&(Real::from_int(&Int::from_i64(&ctx, h.position[2] as i64)) + Real::from_int(&Int::from_i64(&ctx, h.velocity[2] as i64)) * &t_n)),
-        );
+        solver.assert(&(&rx + &wx * &t_n)._eq(
+            &(Real::from_int(&Int::from_i64(&ctx, h.position[0] as i64))
+                + Real::from_int(&Int::from_i64(&ctx, h.velocity[0] as i64)) * &t_n),
+        ));
+        solver.assert(&(&ry + &wy * &t_n)._eq(
+            &(Real::from_int(&Int::from_i64(&ctx, h.position[1] as i64))
+                + Real::from_int(&Int::from_i64(&ctx, h.velocity[1] as i64)) * &t_n),
+        ));
+        solver.assert(&(&rz + &wz * &t_n)._eq(
+            &(Real::from_int(&Int::from_i64(&ctx, h.position[2] as i64))
+                + Real::from_int(&Int::from_i64(&ctx, h.velocity[2] as i64)) * &t_n),
+        ));
     }
     assert_eq!(solver.check(), z3::SatResult::Sat);
     let model = solver.get_model().unwrap();

@@ -152,4 +152,3 @@ fn simulate_step(bricks: &mut Vec<Brick>, mut mark_fallen: impl FnMut(&Brick)) {
         }
     }
 }
-
