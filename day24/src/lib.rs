@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use z3::ast::{Ast, Int};
+use z3::ast::{Ast, Int, Real};
 
 struct Hailstone {
     position: [f64; 3],
@@ -76,35 +76,35 @@ pub fn solve() -> (impl Display, impl Display) {
     let cfg = z3::Config::new();
     let ctx = z3::Context::new(&cfg);
 
-    let rx = Int::new_const(&ctx, "rx");
-    let ry = Int::new_const(&ctx, "ry");
-    let rz = Int::new_const(&ctx, "rz");
-    let wx = Int::new_const(&ctx, "wx");
-    let wy = Int::new_const(&ctx, "wy");
-    let wz = Int::new_const(&ctx, "wz");
+    let rx = Real::new_const(&ctx, "rx");
+    let ry = Real::new_const(&ctx, "ry");
+    let rz = Real::new_const(&ctx, "rz");
+    let wx = Real::new_const(&ctx, "wx");
+    let wy = Real::new_const(&ctx, "wy");
+    let wz = Real::new_const(&ctx, "wz");
 
     let solver = z3::Solver::new(&ctx);
 
-    for (i, h) in hailstones.into_iter().enumerate() {
-        let t_n = Int::new_const(&ctx, format!("t_{}", 1 + i).as_str());
+    for (i, h) in hailstones.into_iter().enumerate().take(3) {
+        let t_n = Real::new_const(&ctx, format!("t_{}", 1 + i).as_str());
         solver.assert(
             &(&rx + &wx * &t_n)
-                ._eq(&(Int::from_i64(&ctx, h.position[0] as i64) + Int::from_i64(&ctx, h.velocity[0] as i64) * &t_n)),
+                ._eq(&(Real::from_int(&Int::from_i64(&ctx, h.position[0] as i64)) + Real::from_int(&Int::from_i64(&ctx, h.velocity[0] as i64)) * &t_n)),
         );
         solver.assert(
             &(&ry + &wy * &t_n)
-                ._eq(&(Int::from_i64(&ctx, h.position[1] as i64) + Int::from_i64(&ctx, h.velocity[1] as i64) * &t_n)),
+                ._eq(&(Real::from_int(&Int::from_i64(&ctx, h.position[1] as i64)) + Real::from_int(&Int::from_i64(&ctx, h.velocity[1] as i64)) * &t_n)),
         );
         solver.assert(
             &(&rz + &wz * &t_n)
-                ._eq(&(Int::from_i64(&ctx, h.position[2] as i64) + Int::from_i64(&ctx, h.velocity[2] as i64) * &t_n)),
+                ._eq(&(Real::from_int(&Int::from_i64(&ctx, h.position[2] as i64)) + Real::from_int(&Int::from_i64(&ctx, h.velocity[2] as i64)) * &t_n)),
         );
     }
     assert_eq!(solver.check(), z3::SatResult::Sat);
     let model = solver.get_model().unwrap();
-    let part2 = model.eval(&rx, true).unwrap().as_i64().unwrap()
-        + model.eval(&ry, true).unwrap().as_i64().unwrap()
-        + model.eval(&rz, true).unwrap().as_i64().unwrap();
+    let part2 = model.eval(&rx, true).unwrap().as_real().unwrap().0
+        + model.eval(&ry, true).unwrap().as_real().unwrap().0
+        + model.eval(&rz, true).unwrap().as_real().unwrap().0;
 
     (part1, part2)
 }
