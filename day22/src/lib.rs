@@ -73,7 +73,14 @@ pub fn solve() -> (impl Display, impl Display) {
     bricks.sort_unstable_by_key(|brick| (brick.start.z, brick.end.z));
 
     // Let the bricks hit the floor.
-    while simulate_step(&mut bricks) {}
+    let mut not_settled = 0;
+    loop {
+        if let Some(first_fallen) = simulate_step(&mut bricks, not_settled) {
+            not_settled = first_fallen;
+        } else {
+            break;
+        }
+    }
 
     let supporters = get_support_tree(&bricks);
 
@@ -144,26 +151,19 @@ fn get_support_tree(bricks: &[Brick]) -> SupportTree {
     tree
 }
 
-pub fn simulate_step(bricks: &mut [Brick]) -> bool {
-    let mut fallen = false;
+pub fn simulate_step(bricks: &mut [Brick], not_settled: usize) -> Option<usize> {
+    let mut first_fallen = None;
 
-    let mut two_before = 0;
-
-    for idx in 0..bricks.len() {
+    for idx in not_settled..bricks.len() {
         let brick = &bricks[idx];
-
         if brick.start.z == 0 {
             continue;
         }
 
         let target_z = brick.start.z - 1;
-        if target_z > 2 + bricks[two_before].start.z {
-            two_before = idx - 1;
-        }
 
         let has_support = bricks
             .iter()
-            .skip(two_before)
             .take(idx)
             .filter(|support| support.end.z == target_z)
             .any(|support| intersects_xy(brick, support));
@@ -172,9 +172,10 @@ pub fn simulate_step(bricks: &mut [Brick]) -> bool {
             let brick = &mut bricks[idx];
             brick.start.z -= 1;
             brick.end.z -= 1;
-            fallen = true;
+            if first_fallen.is_none() {
+                first_fallen = Some(idx);
+            }
         }
     }
-
-    fallen
+    first_fallen
 }
