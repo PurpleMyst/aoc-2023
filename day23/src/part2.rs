@@ -69,22 +69,19 @@ pub fn solve(input: &str) -> u16 {
 
     'consolidate_loop: loop {
         for node in graph.node_indices() {
-            match graph.neighbors(node).count() {
-                2 => {
-                    let mut edges = graph.edges(node);
-                    let from = edges.next().unwrap();
-                    debug_assert_ne!(from.target(), node);
-                    let to = edges.next().unwrap();
-                    debug_assert_ne!(to.target(), node);
+            if graph.neighbors(node).count() == 2 {
+                let mut edges = graph.edges(node);
+                let from = edges.next().unwrap();
+                debug_assert_ne!(from.target(), node);
+                let to = edges.next().unwrap();
+                debug_assert_ne!(to.target(), node);
 
-                    let new_weight = from.weight() + to.weight();
-                    let from_target = from.target();
-                    let to_target = to.target();
-                    graph.add_edge(from_target, to_target, new_weight);
-                    graph.remove_node(node);
-                    continue 'consolidate_loop;
-                }
-                _ => (),
+                let new_weight = from.weight() + to.weight();
+                let from_target = from.target();
+                let to_target = to.target();
+                graph.add_edge(from_target, to_target, new_weight);
+                graph.remove_node(node);
+                continue 'consolidate_loop;
             }
         }
         break;
