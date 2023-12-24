@@ -10,10 +10,7 @@ pub fn solve() -> (impl Display, impl Display) {
     let part1 = part1::solve(input);
 
     let part2_input = input
-        .replace('>', ".")
-        .replace('<', ".")
-        .replace('^', ".")
-        .replace('v', ".");
+        .replace(['>', '<', '^', 'v'], ".");
     let part2 = part2::solve(&part2_input);
 
     (part1, part2)

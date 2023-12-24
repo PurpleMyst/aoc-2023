@@ -48,7 +48,7 @@ impl Hailstone {
 }
 
 fn in_test_area(coord: f64) -> bool {
-    coord >= 200000000000000. && coord <= 400000000000000.
+    (200000000000000. ..=400000000000000.).contains(&coord)
 }
 
 #[inline]
