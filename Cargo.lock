@@ -592,6 +592,7 @@ dependencies = [
 name = "day23"
 version = "0.1.0"
 dependencies = [
+ "criterion 0.5.1",
  "grid 0.13.0",
  "indicatif",
  "num-traits",
