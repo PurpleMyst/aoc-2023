@@ -90,10 +90,10 @@ def in_root_dir(f):
     return inner
 
 
-@arg("-d", "--day", choices=DAYS_LEFT, default=min(DAYS_LEFT), required=False)
+@arg("-d", "--day", choices=DAYS_LEFT, default=min(DAYS_LEFT, default=0), required=False)
 @aliases("ss")
 @wrap_errors((requests.HTTPError,))
-def start_solve(day: int = min(DAYS_LEFT)) -> None:
+def start_solve(day: int = min(DAYS_LEFT, default=0)) -> None:
     "Start solving a day, by default today."
     crate = f"day{day:02}"
     crate_path = Path(crate)
