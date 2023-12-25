@@ -110,13 +110,12 @@ def dfs(inp, start_idx):
 
         if (neighbors > 2 or inp.is_start(idx) or inp.is_end(idx)) and idx != start_idx:
             yield (idx, d)
-            return
+        else:
+            for nidx in inp.adjacency[idx]:
+                if inner_visited[nidx]:
+                    continue
 
-        for nidx in inp.adjacency[idx]:
-            if inner_visited[nidx]:
-                continue
-
-            yield from inner(nidx, d + 1)
+                yield from inner(nidx, d + 1)
 
     return inner(start_idx, 0)
 
@@ -167,6 +166,7 @@ def main() -> None:
     visited[start_idx] = True
 
     unexplored_edges = [len(neighbors) for neighbors in graph]
+
 
     for current in q:
         dp_manager.add_vertex(current)
