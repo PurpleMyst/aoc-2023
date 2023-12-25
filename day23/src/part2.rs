@@ -1,4 +1,5 @@
 use petgraph::prelude::*;
+use rayon::prelude::*;
 
 type CondensedGraph = UnGraph<(u8, u8), u16, u16>;
 
@@ -16,6 +17,8 @@ fn do_search(
     graph
         .edges(current)
         .filter(|&edge| visited & (1 << edge.target().index()) == 0)
+        .collect::<arrayvec::ArrayVec<_, 3>>()
+        .into_par_iter()
         .map(|edge| do_search(graph, edge.target(), goal, distance + edge.weight(), visited))
         .max()
         .unwrap_or(0)
