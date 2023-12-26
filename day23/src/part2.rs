@@ -1,4 +1,5 @@
 use std::{collections::VecDeque, hash::BuildHasherDefault};
+use std::mem::swap;
 
 use arrayvec::ArrayVec;
 use rustc_hash::{FxHashMap as HashMap, FxHasher};
@@ -30,16 +31,16 @@ impl Solver {
     }
 
     fn add_vertex(&mut self, vertex: Node) {
-        assert_eq!(self.new_states.len(), 0);
+        debug_assert_eq!(self.new_states.len(), 0);
         for (mut state, cost) in self.states.drain() {
             state.insert((vertex, vertex));
             self.new_states.insert(state, cost);
         }
-        self.states.extend(self.new_states.drain());
+        swap(&mut self.states, &mut self.new_states);
     }
 
     fn remove_vertex(&mut self, vertex: Node) {
-        assert_eq!(self.new_states.len(), 0);
+        debug_assert_eq!(self.new_states.len(), 0);
         if vertex == self.start || vertex == self.goal {
             return;
         }
@@ -61,11 +62,11 @@ impl Solver {
             }
         }
 
-        self.states.extend(self.new_states.drain());
+        swap(&mut self.states, &mut self.new_states);
     }
 
     fn add_edge(&mut self, u: Node, v: Node, w: Cost) {
-        assert_eq!(self.new_states.len(), 0);
+        debug_assert_eq!(self.new_states.len(), 0);
         let old_dp = self.states.clone();
         for (mut state, cost) in old_dp {
             let mut u_edge = None;
