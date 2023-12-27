@@ -14,16 +14,15 @@ struct State {
 
 impl State {
     fn insert(&mut self, edge: (Node, Node)) {
-        let insertion_idx = self.paths.binary_search(&edge).unwrap_or_else(|e| e);
+        let insertion_idx = self.paths.iter()
+            .position(|&e| e > edge)
+            .unwrap_or_else(|| self.paths.len());
         self.paths.insert(insertion_idx, edge);
     }
 
     fn remove(&mut self, edge: (Node, Node)) {
-        if let Ok(idx) = self.paths.binary_search(&edge) {
-            self.paths.remove(idx);
-        } else {
-            panic!("edge not found");
-        }
+        let idx = self.paths.iter().position(|&e| e == edge).unwrap();
+        self.paths.remove(idx);
     }
 
     fn find_edge_containing(&self, node: Node) -> Option<(Node, Node)> {
