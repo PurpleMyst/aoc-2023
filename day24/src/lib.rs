@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use z3::ast::{Ast, Int, Real};
+use nalgebra::{Matrix4, RowVector4, Vector4};
 
 struct Hailstone {
     position: [f64; 3],
@@ -51,12 +51,7 @@ fn in_test_area(coord: f64) -> bool {
     (200000000000000. ..=400000000000000.).contains(&coord)
 }
 
-#[inline]
-pub fn solve() -> (impl Display, impl Display) {
-    let input = include_str!("input.txt");
-
-    let hailstones = input.lines().map(Hailstone::parse).collect::<Vec<_>>();
-
+fn do_part1(hailstones: &Vec<Hailstone>) -> i32 {
     let mut part1 = 0;
     for (i, h1) in hailstones.iter().enumerate() {
         for h2 in hailstones.iter().skip(i + 1) {
@@ -70,39 +65,57 @@ pub fn solve() -> (impl Display, impl Display) {
             }
         }
     }
+    part1
+}
 
-    let cfg = z3::Config::new();
-    let ctx = z3::Context::new(&cfg);
-
-    let rx = Real::new_const(&ctx, "rx");
-    let ry = Real::new_const(&ctx, "ry");
-    let rz = Real::new_const(&ctx, "rz");
-    let wx = Real::new_const(&ctx, "wx");
-    let wy = Real::new_const(&ctx, "wy");
-    let wz = Real::new_const(&ctx, "wz");
-
-    let solver = z3::Solver::new(&ctx);
-
-    for (i, h) in hailstones.into_iter().enumerate().take(3) {
-        let t_n = Real::new_const(&ctx, format!("t_{}", 1 + i).as_str());
-        solver.assert(&(&rx + &wx * &t_n)._eq(
-            &(Real::from_int(&Int::from_i64(&ctx, h.position[0] as i64))
-                + Real::from_int(&Int::from_i64(&ctx, h.velocity[0] as i64)) * &t_n),
-        ));
-        solver.assert(&(&ry + &wy * &t_n)._eq(
-            &(Real::from_int(&Int::from_i64(&ctx, h.position[1] as i64))
-                + Real::from_int(&Int::from_i64(&ctx, h.velocity[1] as i64)) * &t_n),
-        ));
-        solver.assert(&(&rz + &wz * &t_n)._eq(
-            &(Real::from_int(&Int::from_i64(&ctx, h.position[2] as i64))
-                + Real::from_int(&Int::from_i64(&ctx, h.velocity[2] as i64)) * &t_n),
-        ));
+// adapted from https://www.reddit.com/r/adventofcode/comments/18pnycy/2023_day_24_solutions/kf068o2/
+fn to_xy_equations(head: &Hailstone, tail: &[Hailstone]) -> (Matrix4<f64>, Vector4<f64>) {
+    let mut m = Matrix4::zeros();
+    let mut r = Vector4::zeros();
+    for (i, h) in tail.iter().enumerate() {
+        let (e, w) = to_xy_equation(head, h);
+        m.set_row(i, &e);
+        r[i] = w;
     }
-    assert_eq!(solver.check(), z3::SatResult::Sat);
-    let model = solver.get_model().unwrap();
-    let part2 = model.eval(&rx, true).unwrap().as_real().unwrap().0
-        + model.eval(&ry, true).unwrap().as_real().unwrap().0
-        + model.eval(&rz, true).unwrap().as_real().unwrap().0;
+    (m, r)
+}
 
-    (part1, part2)
+fn to_xy_equation(a: &Hailstone, b: &Hailstone) -> (RowVector4<f64>, f64) {
+    let (x0, y0, _) = (a.position[0], a.position[1], a.position[2]);
+    let (x1, y1, _) = (b.position[0], b.position[1], b.position[2]);
+    let (vx0, vy0, _) = (a.velocity[0], a.velocity[1], a.velocity[2]);
+    let (vx1, vy1, _) = (b.velocity[0], b.velocity[1], b.velocity[2]);
+    let e = RowVector4::new(vy0 - vy1, y1 - y0, vx1 - vx0, x0 - x1);
+    let w = vy0 * x0 - vx0 * y0 + vx1 * y1 - vy1 * x1;
+    (e, w)
+}
+
+fn find_z_dz(x: f64, dx: f64, h0: &Hailstone, h1: &Hailstone) -> (f64, f64) {
+    let t0 = (h0.position[0] - x) / (dx - h0.velocity[0]);
+    let t1 = (h1.position[0] - x) / (dx - h1.velocity[0]);
+    let r0 = h0.position[2] + h0.velocity[2] * t0;
+    let r1 = h1.position[2] + h1.velocity[2] * t1;
+    let dz = (r1 - r0) / (t1 - t0);
+    let z = r0 - dz * t0;
+    (z, dz)
+}
+
+fn do_part2(hs: &[Hailstone; 5]) -> f64 {
+    let (head, tail) = hs.split_first().unwrap();
+    let sol = {
+        let (m, r) = to_xy_equations(head, tail);
+        m.lu().solve(&r).unwrap()
+    };
+    let x = sol[0];
+    let dx = sol[1];
+    let y = sol[2];
+    let (z, _) = find_z_dz(x, dx, head, &tail[0]);
+    x + y + z
+}
+
+#[inline]
+pub fn solve() -> (impl Display, impl Display) {
+    let input = include_str!("input.txt");
+    let hailstones = input.lines().map(Hailstone::parse).collect::<Vec<_>>();
+    (do_part1(&hailstones), do_part2(hailstones[..5].try_into().unwrap()))
 }
