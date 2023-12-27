@@ -1,17 +1,15 @@
-use std::{collections::VecDeque, hash::BuildHasherDefault, mem::swap};
+use std::{collections::VecDeque, mem::swap};
 
 use arrayvec::ArrayVec;
-use rustc_hash::{FxHashMap as HashMap, FxHasher};
+use rustc_hash::FxHashMap as HashMap;
 
-type OriginalNode = usize;
 type Node = u8;
-
 type Cost = u16;
 type States = HashMap<State, Cost>;
 
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 struct State {
-    paths: ArrayVec<(Node, Node), 10>,
+    paths: ArrayVec<(Node, Node), 8>,
 }
 
 impl State {
@@ -111,6 +109,13 @@ impl Solver {
     fn add_edge(&mut self, u: Node, v: Node, w: Cost) {
         debug_assert_eq!(self.new_states.len(), 0);
         let old_dp = self.states.clone();
+
+        // Edges that involve the start node must be used. There's only one, so if we don't use it we've not got any way
+        // to get to the end.
+        if u == self.start || v == self.start {
+            self.states.clear();
+        }
+
         for (mut state, cost) in old_dp {
             let Some((u_edge, v_edge)) = state.find_distinct_edges_containing(u, v) else {
                 continue;
@@ -119,6 +124,7 @@ impl Solver {
             let y = if v_edge.0 == v { v_edge.1 } else { v_edge.0 };
             let new_edge = if x < y { (x, y) } else { (y, x) };
             let new_cost = cost + w;
+
             state.remove(u_edge);
             state.remove(v_edge);
             state.insert(new_edge);
@@ -175,15 +181,15 @@ pub fn solve(input: &str) -> Cost {
         })
         .collect::<Vec<_>>();
 
-    let mut graph = vec![ArrayVec::<(OriginalNode, Cost), 4>::new(); area];
+    let mut graph = vec![ArrayVec::<(usize, Cost), 4>::new(); area];
 
     let mut outer_visited = vec![false; area];
-    let mut outer_queue: VecDeque<OriginalNode> = Default::default();
+    let mut outer_queue: VecDeque<usize> = Default::default();
     outer_queue.push_back(start_idx);
 
     while let Some(source) = outer_queue.pop_front() {
         let mut visited = vec![false; area];
-        let mut queue: VecDeque<(OriginalNode, Cost)> = Default::default();
+        let mut queue: VecDeque<(usize, Cost)> = Default::default();
         queue.push_back((source, 0));
 
         while let Some((node, cost)) = queue.pop_front() {
