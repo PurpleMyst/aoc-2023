@@ -535,6 +535,7 @@ dependencies = [
  "num-traits",
  "petgraph",
  "rayon",
+ "rustc-hash",
 ]
 
 [[package]]
