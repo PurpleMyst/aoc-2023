@@ -513,6 +513,7 @@ version = "0.1.0"
 dependencies = [
  "bucket_queue",
  "hibitset",
+ "rayon",
  "rustc-hash",
 ]
 
