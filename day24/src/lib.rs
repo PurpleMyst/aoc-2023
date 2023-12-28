@@ -51,7 +51,7 @@ fn in_test_area(coord: f64) -> bool {
     (200000000000000. ..=400000000000000.).contains(&coord)
 }
 
-fn do_part1(hailstones: &Vec<Hailstone>) -> i32 {
+fn do_part1(hailstones: &[Hailstone]) -> i32 {
     let mut part1 = 0;
     for (i, h1) in hailstones.iter().enumerate() {
         for h2 in hailstones.iter().skip(i + 1) {

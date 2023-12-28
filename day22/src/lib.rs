@@ -124,7 +124,7 @@ pub fn solve() -> (impl Display, impl Display) {
 pub fn simulate_until_settled(bricks: &mut Vec<Brick>) {
     bricks.sort_unstable_by_key(|brick| (brick.start.z, brick.end.z));
 
-    let mut height_map = vec![0; SIDE * SIDE];
+    let mut height_map = [0; SIDE * SIDE];
 
     for brick in bricks {
         let fall_to = iproduct!(brick.start.x..=brick.end.x, brick.start.y..=brick.end.y)

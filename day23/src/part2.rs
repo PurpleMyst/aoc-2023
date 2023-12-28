@@ -219,11 +219,11 @@ pub fn solve(input: &str) -> Cost {
     let mut new_goal_idx = 0;
     let mut new_indices = vec![0; area];
     for (idx, neighbors) in graph.iter_mut().enumerate() {
-        if neighbors.len() > 0 {
-            if usize::from(idx) == start_idx {
+        if !neighbors.is_empty() {
+            if idx == start_idx {
                 new_start_idx = i;
             }
-            if usize::from(idx) == goal_idx {
+            if idx == goal_idx {
                 new_goal_idx = i;
             }
             new_indices[idx] = i;
@@ -232,9 +232,9 @@ pub fn solve(input: &str) -> Cost {
     }
     let mut new_graph = vec![ArrayVec::<(Node, Cost), 4>::new(); usize::from(i)];
     for (idx, neighbors) in graph.iter_mut().enumerate() {
-        if neighbors.len() > 0 {
+        if !neighbors.is_empty() {
             for &(neighbor, weight) in neighbors.iter() {
-                new_graph[usize::from(new_indices[idx])].push((new_indices[usize::from(neighbor)], weight));
+                new_graph[usize::from(new_indices[idx])].push((new_indices[neighbor], weight));
             }
         }
     }

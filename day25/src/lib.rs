@@ -31,7 +31,7 @@ fn do_solve(mut graph: Graph<(), (), Undirected, usize>) -> usize {
     let frequencies = (0..SAMPLE_POINTS)
         .into_par_iter()
         .fold(
-            || HashMap::<_, usize>::default(),
+            HashMap::<_, usize>::default,
             |mut frequencies, _| {
                 let mut rng = thread_rng();
                 let start = rng.gen_range(0..graph.node_count());
@@ -47,7 +47,7 @@ fn do_solve(mut graph: Graph<(), (), Undirected, usize>) -> usize {
             },
         )
         .reduce(
-            || HashMap::<_, usize>::default(),
+            HashMap::<_, usize>::default,
             |mut frequencies, other_frequencies| {
                 for (edge, count) in other_frequencies {
                     *frequencies.entry(edge).or_default() += count;
