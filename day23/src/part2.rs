@@ -14,7 +14,9 @@ struct State {
 
 impl State {
     fn insert(&mut self, edge: (Node, Node)) {
-        let insertion_idx = self.paths.iter()
+        let insertion_idx = self
+            .paths
+            .iter()
             .position(|&e| e > edge)
             .unwrap_or_else(|| self.paths.len());
         self.paths.insert(insertion_idx, edge);

@@ -34,56 +34,56 @@ pub fn solve() -> (impl Display, impl Display) {
     let input = include_str!("input.txt");
     let (walls, side, start_pos) = load_input(input);
 
-        let mut q = BucketQueue::<Vec<_>>::new();
-        q.push(start_pos, 0);
+    let mut q = BucketQueue::<Vec<_>>::new();
+    q.push(start_pos, 0);
 
-        let mut visited = HashSet::default();
+    let mut visited = HashSet::default();
 
-        let mut part1 = 0;
+    let mut part1 = 0;
 
-        let mut odd_full = 0;
-        let mut even_full = 0;
-        let mut odd_corners = 0;
-        let mut even_corners = 0;
+    let mut odd_full = 0;
+    let mut even_full = 0;
+    let mut odd_corners = 0;
+    let mut even_corners = 0;
 
-        while let Some(distance) = q.min_priority() {
-            let (x, y) = q.pop(distance).unwrap();
-            if !visited.insert((x, y)) {
-                continue;
-            }
-
-            if distance < P1_TOTAL_STEPS {
-                part1 += 1;
-            }
-
-            if distance % 2 == 0 {
-                even_full += 1;
-                if distance > 65 {
-                    even_corners += 1;
-                }
-            } else {
-                odd_full += 1;
-                if distance > 65 {
-                    odd_corners += 1;
-                }
-            }
-
-            let neighbors = [
-                (x.checked_sub(1), Some(y)),
-                (Some(x + 1), Some(y)),
-                (Some(x), y.checked_sub(1)),
-                (Some(x), Some(y + 1)),
-            ];
-            neighbors
-                .into_iter()
-                .filter_map(|(x, y)| x.zip(y))
-                .filter(|&(x, y)| x < side && y < side)
-                .filter(|&(x, y)| !walls.contains((y * side + x) as u32))
-                .for_each(|pos| q.push(pos, distance + 1))
+    while let Some(distance) = q.min_priority() {
+        let (x, y) = q.pop(distance).unwrap();
+        if !visited.insert((x, y)) {
+            continue;
         }
 
-        let n = (P2_TOTAL_STEPS - (side / 2)) / side;
-        let part2 = ((n + 1) * (n + 1)) * odd_full + (n * n) * even_full - (n + 1) * odd_corners + n * even_corners - n;
+        if distance < P1_TOTAL_STEPS {
+            part1 += 1;
+        }
 
-        (part1, part2)
+        if distance % 2 == 0 {
+            even_full += 1;
+            if distance > 65 {
+                even_corners += 1;
+            }
+        } else {
+            odd_full += 1;
+            if distance > 65 {
+                odd_corners += 1;
+            }
+        }
+
+        let neighbors = [
+            (x.checked_sub(1), Some(y)),
+            (Some(x + 1), Some(y)),
+            (Some(x), y.checked_sub(1)),
+            (Some(x), Some(y + 1)),
+        ];
+        neighbors
+            .into_iter()
+            .filter_map(|(x, y)| x.zip(y))
+            .filter(|&(x, y)| x < side && y < side)
+            .filter(|&(x, y)| !walls.contains((y * side + x) as u32))
+            .for_each(|pos| q.push(pos, distance + 1))
+    }
+
+    let n = (P2_TOTAL_STEPS - (side / 2)) / side;
+    let part2 = ((n + 1) * (n + 1)) * odd_full + (n * n) * even_full - (n + 1) * odd_corners + n * even_corners - n;
+
+    (part1, part2)
 }
