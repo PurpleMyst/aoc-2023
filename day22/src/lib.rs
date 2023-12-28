@@ -1,18 +1,21 @@
 use std::fmt::{Debug, Display};
 
 use hi_sparse_bitset::prelude::*;
+use itertools::iproduct;
 use rayon::prelude::*;
 
 use rustc_hash::FxHashSet as HashSet;
+
+const SIDE: usize = 10;
 
 type BitSet = hi_sparse_bitset::BitSet<hi_sparse_bitset::config::_64bit>;
 type SupportTree = Vec<Vec<usize>>;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Pos {
-    pub x: u64,
-    pub y: u64,
-    pub z: u64,
+    pub x: u16,
+    pub y: u16,
+    pub z: u16,
 }
 
 impl Debug for Pos {
@@ -70,17 +73,7 @@ pub fn solve() -> (impl Display, impl Display) {
         .zip(0..)
         .map(|(line, id)| Brick::parse(id, line))
         .collect::<Vec<_>>();
-    bricks.sort_unstable_by_key(|brick| (brick.start.z, brick.end.z));
-
-    // Let the bricks hit the floor.
-    let mut not_settled = 0;
-    loop {
-        if let Some(first_fallen) = simulate_step(&mut bricks, not_settled) {
-            not_settled = first_fallen;
-        } else {
-            break;
-        }
-    }
+    simulate_until_settled(&mut bricks);
 
     let supporters = get_support_tree(&bricks);
 
@@ -125,6 +118,25 @@ pub fn solve() -> (impl Display, impl Display) {
     (p1, p2)
 }
 
+pub fn simulate_until_settled(bricks: &mut Vec<Brick>) {
+    bricks.sort_unstable_by_key(|brick| (brick.start.z, brick.end.z));
+
+    let mut height_map = vec![0; SIDE * SIDE];
+
+    for brick in bricks {
+        let fall_to = iproduct!(brick.start.x..=brick.end.x, brick.start.y..=brick.end.y)
+            .map(|(x, y)| height_map[x as usize + y as usize * SIDE])
+            .max()
+            .unwrap();
+
+        brick.end.z = fall_to + (brick.end.z - brick.start.z);
+        brick.start.z = fall_to;
+
+        iproduct!(brick.start.x..=brick.end.x, brick.start.y..=brick.end.y)
+            .for_each(|(x, y)| height_map[x as usize + y as usize * SIDE] = brick.end.z + 1);
+    }
+}
+
 fn intersects_xy(a: &Brick, b: &Brick) -> bool {
     a.start.x <= b.end.x && a.end.x >= b.start.x && a.start.y <= b.end.y && a.end.y >= b.start.y
 }
@@ -149,33 +161,4 @@ fn get_support_tree(bricks: &[Brick]) -> SupportTree {
             .collect();
     });
     tree
-}
-
-pub fn simulate_step(bricks: &mut [Brick], not_settled: usize) -> Option<usize> {
-    let mut first_fallen = None;
-
-    for idx in not_settled..bricks.len() {
-        let brick = &bricks[idx];
-        if brick.start.z == 0 {
-            continue;
-        }
-
-        let target_z = brick.start.z - 1;
-
-        let has_support = bricks
-            .iter()
-            .take(idx)
-            .filter(|support| support.end.z == target_z)
-            .any(|support| intersects_xy(brick, support));
-
-        if !has_support {
-            let brick = &mut bricks[idx];
-            brick.start.z -= 1;
-            brick.end.z -= 1;
-            if first_fallen.is_none() {
-                first_fallen = Some(idx);
-            }
-        }
-    }
-    first_fallen
 }
