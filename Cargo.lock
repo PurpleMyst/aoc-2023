@@ -520,8 +520,10 @@ dependencies = [
 name = "day22"
 version = "0.1.0"
 dependencies = [
+ "arrayvec",
  "criterion 0.5.1",
  "hi_sparse_bitset",
+ "hibitset",
  "itertools 0.12.0",
  "rayon",
  "rustc-hash",

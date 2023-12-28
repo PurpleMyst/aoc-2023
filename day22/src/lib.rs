@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display};
 
-use hi_sparse_bitset::prelude::*;
+use arrayvec::ArrayVec;
+use hibitset::{BitSet, BitSetLike};
 use itertools::iproduct;
 use rayon::prelude::*;
 
@@ -8,8 +9,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 const SIDE: usize = 10;
 
-type BitSet = hi_sparse_bitset::BitSet<hi_sparse_bitset::config::_64bit>;
-type SupportTree = Vec<Vec<usize>>;
+type SupportTree = Vec<ArrayVec<usize, 3>>;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Pos {
@@ -87,7 +87,7 @@ pub fn solve() -> (impl Display, impl Display) {
     }
     let p1 = bricks.len() - sole_supporters.len();
 
-    let mut supportees = vec![Vec::new(); bricks.len()];
+    let mut supportees = vec![ArrayVec::<_, 4>::new(); bricks.len()];
     for (&supportee, supported_by) in bricks.iter().zip(supporters.iter()) {
         for &supporter in supported_by {
             supportees[supporter].push(supportee.id);
@@ -98,14 +98,17 @@ pub fn solve() -> (impl Display, impl Display) {
         .into_par_iter()
         .map(|brick| {
             let mut falling = BitSet::new();
-            falling.insert(brick);
+            falling.add(brick as u32);
 
             let mut q = vec![brick];
             while let Some(brick) = q.pop() {
                 let children = &supportees[brick];
                 for &child in children {
-                    if supporters[child].iter().all(|&support| falling.contains(support)) {
-                        falling.insert(child);
+                    if supporters[child]
+                        .iter()
+                        .all(|&support| falling.contains(support as u32))
+                    {
+                        falling.add(child as u32);
                         q.push(child);
                     }
                 }
@@ -142,7 +145,7 @@ fn intersects_xy(a: &Brick, b: &Brick) -> bool {
 }
 
 fn get_support_tree(bricks: &[Brick]) -> SupportTree {
-    let mut tree = vec![Vec::new(); bricks.len()];
+    let mut tree = vec![ArrayVec::new(); bricks.len()];
     (0..bricks.len()).for_each(|idx| {
         let brick = &bricks[idx];
 
